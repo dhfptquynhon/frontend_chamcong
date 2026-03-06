@@ -9,9 +9,6 @@ import {
   Chip,
   Stack,
   Divider,
-  List,
-  ListItem,
-  ListItemText,
   Tooltip,
   Dialog,
   DialogTitle,
@@ -19,10 +16,6 @@ import {
   DialogActions,
   TextField,
   Grid,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
-  FormLabel
 } from '@mui/material';
 import {
   AccessTime as AccessTimeIcon,
@@ -82,7 +75,7 @@ const Attendance = ({ onChanged }) => {
     setMessage('');
     try {
       const res = await axios.get(
-        `http://localhost:5000/api/attendance/my/today-shifts?date=${todayStr}`,
+        `https://backendchamcong-production.up.railway.app/api/attendance/my/today-shifts?date=${todayStr}`,
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
       // Sắp xếp theo thứ tự ca
@@ -134,7 +127,7 @@ const Attendance = ({ onChanged }) => {
 
     try {
       const res = await axios.post(
-        `http://localhost:5000/api/attendance/schedule/${shift.id}/request-time-adjustment`,
+        `https://backendchamcong-production.up.railway.app/api/attendance/schedule/${shift.id}/request-time-adjustment`,
         {
           loai_yeu_cau: loaiYeuCau,
           thoi_gian_de_xuat: thoiGianDeXuat,
@@ -178,7 +171,7 @@ const Attendance = ({ onChanged }) => {
     setError('');
     try {
       const res = await axios.post(
-        `http://localhost:5000/api/attendance/schedule/${shift.id}/checkin`,
+        `https://backendchamcong-production.up.railway.app/api/attendance/schedule/${shift.id}/checkin`,
         {},
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
@@ -214,7 +207,7 @@ const Attendance = ({ onChanged }) => {
     setError('');
     try {
       const res = await axios.post(
-        `http://localhost:5000/api/attendance/schedule/${shift.id}/checkout`,
+        `https://backendchamcong-production.up.railway.app/api/attendance/schedule/${shift.id}/checkout`,
         {},
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );

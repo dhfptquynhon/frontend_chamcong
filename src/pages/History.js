@@ -3,7 +3,7 @@ import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, Ta
 import AuthContext from '../context/AuthContext';
 import axios from 'axios';
 
-import { TextField, Button, Grid } from '@mui/material';
+import { TextField, Grid } from '@mui/material';
 
 const History = () => {
   const { auth } = useContext(AuthContext);
@@ -19,7 +19,7 @@ const History = () => {
     const fetchHistory = async () => {
       try {
           const response = await axios.get(
-            `http://localhost:5000/api/attendance/history/month?month=${month}&year=${year}`,
+            `https://backendchamcong-production.up.railway.app/api/attendance/history/month?month=${month}&year=${year}`,
             {
               headers: {
                 Authorization: `Bearer ${auth.token}`
