@@ -1320,7 +1320,7 @@ const AdminHistory = () => {
     
     setLoadingRequests(true);
     try {
-      const response = await axios.get('http://localhost:5000/api/attendance/admin/pending-time-adjustments', {
+      const response = await axios.get('https://backendchamcong-production.up.railway.app/api/attendance/admin/pending-time-adjustments', {
         headers: { Authorization: `Bearer ${auth.token}` }
       });
       setTimeAdjustmentRequests(response.data);
@@ -1338,7 +1338,7 @@ const AdminHistory = () => {
       setLoadingRequests(true);
       
       const response = await axios.post(
-        `http://localhost:5000/api/attendance/admin/time-adjustment/${requestId}/process`,
+        `https://backendchamcong-production.up.railway.app/api/attendance/admin/time-adjustment/${requestId}/process`,
         { approve, thoi_gian_dieu_chinh: adjustedTime, ghi_chu_admin: adminNote },
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
@@ -1379,7 +1379,7 @@ const AdminHistory = () => {
       
       setLoadingEmployees(true);
       try {
-        const response = await axios.get('http://localhost:5000/api/attendance/admin/employees', {
+        const response = await axios.get('https://backendchamcong-production.up.railway.app/api/attendance/admin/employees', {
           headers: { Authorization: `Bearer ${auth.token}` }
         });
         const nonAdminEmployees = (response.data || []).filter(emp => !emp.is_admin);
@@ -1402,7 +1402,7 @@ const AdminHistory = () => {
     
     setLoadingRegisteredUsers(true);
     try {
-      const response = await axios.get('http://localhost:5000/api/attendance/admin/registered-users', {
+      const response = await axios.get('https://backendchamcong-production.up.railway.app/api/attendance/admin/registered-users', {
         headers: { Authorization: `Bearer ${auth.token}` }
       });
       setRegisteredUsers(response.data);
@@ -1419,7 +1419,7 @@ const AdminHistory = () => {
     
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/attendance/admin/employee/${userId}/detail?month=${selectedMonth}&year=${selectedYear}`,
+        `https://backendchamcong-production.up.railway.app/api/attendance/admin/employee/${userId}/detail?month=${selectedMonth}&year=${selectedYear}`,
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
       
@@ -1451,7 +1451,7 @@ const AdminHistory = () => {
           if (!employee) continue;
           
           const attendanceRes = await axios.get(
-            `http://localhost:5000/api/attendance/admin/employee/${employeeId}/attendance?month=${month}&year=${year}`,
+            `https://backendchamcong-production.up.railway.app/api/attendance/admin/employee/${employeeId}/attendance?month=${month}&year=${year}`,
             { headers: { Authorization: `Bearer ${auth.token}` } }
           );
           
@@ -1472,7 +1472,7 @@ const AdminHistory = () => {
           });
           
           const statsRes = await axios.get(
-            `http://localhost:5000/api/attendance/admin/employee/${employeeId}/monthly-stats?month=${month}&year=${year}`,
+            `https://backendchamcong-production.up.railway.app/api/attendance/admin/employee/${employeeId}/monthly-stats?month=${month}&year=${year}`,
             { headers: { Authorization: `Bearer ${auth.token}` } }
           );
           statsData[employeeId] = statsRes.data;
