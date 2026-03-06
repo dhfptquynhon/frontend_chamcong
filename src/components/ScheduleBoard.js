@@ -601,7 +601,7 @@ const handleCancelTrucThay = async (cell, setLoading, auth, showSnackbar, fetchS
     console.log('Gọi API hủy trực thay với ID:', lich_truc_goc_id);
     
     const res = await axios.delete(
-      `http://localhost:5000/api/attendance/truc-thay/cancel/${lich_truc_goc_id}`,
+      `https://backendchamcong-production.up.railway.app/api/attendance/truc-thay/cancel/${lich_truc_goc_id}`,
       { 
         headers: { Authorization: `Bearer ${auth.token}` },
         timeout: 10000
@@ -864,7 +864,7 @@ const ScheduleBoard = ({ refreshToken }) => {
       debugLog('Đang load ca trực thay...');
       
       const res = await axios.get(
-        'http://localhost:5000/api/attendance/truc-thay/my-shifts',
+        'https://backendchamcong-production.up.railway.app/api/attendance/truc-thay/my-shifts',
         { 
           headers: { Authorization: `Bearer ${auth.token}` },
           timeout: 10000 // 10 giây timeout
@@ -908,7 +908,7 @@ const ScheduleBoard = ({ refreshToken }) => {
     
     try {
       const res = await axios.get(
-        'http://localhost:5000/api/attendance/my/time-adjustments',
+        'https://backendchamcong-production.up.railway.app/api/attendance/my/time-adjustments',
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
       
@@ -947,7 +947,7 @@ const ScheduleBoard = ({ refreshToken }) => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get(`http://localhost:5000/api/attendance/schedule?month=${month}&year=${year}`, {
+      const res = await axios.get(`https://backendchamcong-production.up.railway.app/api/attendance/schedule?month=${month}&year=${year}`, {
         headers: { Authorization: `Bearer ${auth.token}` },
       });
       
@@ -988,7 +988,7 @@ const ScheduleBoard = ({ refreshToken }) => {
     
     setFetchingEmployees(true);
     try {
-      const res = await axios.get('http://localhost:5000/api/attendance/admin/employees', {
+      const res = await axios.get('https://backendchamcong-production.up.railway.app/api/attendance/admin/employees', {
         headers: { Authorization: `Bearer ${auth.token}` },
       });
       const filteredEmployees = res.data.filter(emp => 
@@ -1008,7 +1008,7 @@ const ScheduleBoard = ({ refreshToken }) => {
     if (!auth?.token) return;
     
     try {
-      const res = await axios.get(`http://localhost:5000/api/attendance/daily-summary?date=${date}`, {
+      const res = await axios.get(`https://backendchamcong-production.up.railway.app/api/attendance/daily-summary?date=${date}`, {
         headers: { Authorization: `Bearer ${auth.token}` },
       });
       return res.data;
@@ -1023,7 +1023,7 @@ const ScheduleBoard = ({ refreshToken }) => {
     if (!auth?.token) return;
     
     try {
-      const res = await axios.get(`http://localhost:5000/api/attendance/monthly-report?month=${month}&year=${year}`, {
+      const res = await axios.get(`https://backendchamcong-production.up.railway.app/api/attendance/monthly-report?month=${month}&year=${year}`, {
         headers: { Authorization: `Bearer ${auth.token}` },
       });
       return res.data;
@@ -1095,7 +1095,7 @@ const ScheduleBoard = ({ refreshToken }) => {
       
       // Kiểm tra có thể trực thay không
       const checkRes = await axios.get(
-        `http://localhost:5000/api/attendance/truc-thay/check/${cell.id}`,
+        `https://backendchamcong-production.up.railway.app/api/attendance/truc-thay/check/${cell.id}`,
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
       
@@ -1129,7 +1129,7 @@ const ScheduleBoard = ({ refreshToken }) => {
       debugLog('Đang gửi yêu cầu trực thay...', { cell_id: cell.id, ly_do: lyDo });
       
       const res = await axios.post(
-        'http://localhost:5000/api/attendance/truc-thay/request',
+        'https://backendchamcong-production.up.railway.app/api/attendance/truc-thay/request',
         {
           lich_truc_id: cell.id,
           ly_do: lyDo || 'Không có lý do'
@@ -1208,7 +1208,7 @@ const ScheduleBoard = ({ refreshToken }) => {
       debugLog('Đang check-in trực thay...', { lich_truc_ao_id });
       
       const res = await axios.post(
-        `http://localhost:5000/api/attendance/truc-thay/checkin/${lich_truc_ao_id}`,
+        `https://backendchamcong-production.up.railway.app/api/attendance/truc-thay/checkin/${lich_truc_ao_id}`,
         {},
         { 
           headers: { Authorization: `Bearer ${auth.token}` },
@@ -1258,7 +1258,7 @@ const ScheduleBoard = ({ refreshToken }) => {
       debugLog('Đang check-out trực thay...', { lich_truc_ao_id });
       
       const res = await axios.post(
-        `http://localhost:5000/api/attendance/truc-thay/checkout/${lich_truc_ao_id}`,
+        `https://backendchamcong-production.up.railway.app/api/attendance/truc-thay/checkout/${lich_truc_ao_id}`,
         {},
         { 
           headers: { Authorization: `Bearer ${auth.token}` },
@@ -1357,7 +1357,7 @@ const ScheduleBoard = ({ refreshToken }) => {
       setLoading(true);
       
       const res = await axios.post(
-        `http://localhost:5000/api/attendance/schedule/${cell.id}/request-time-adjustment`,
+        `https://backendchamcong-production.up.railway.app/api/attendance/schedule/${cell.id}/request-time-adjustment`,
         {
           loai_yeu_cau: loaiYeuCau,
           thoi_gian_de_xuat: thoiGianDeXuat,
@@ -1428,7 +1428,7 @@ const ScheduleBoard = ({ refreshToken }) => {
     
     try {
       const res = await axios.post(
-        'http://localhost:5000/api/attendance/schedule/register',
+        'https://backendchamcong-production.up.railway.app/api/attendance/schedule/register',
         { date, shift: shiftKey },
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
@@ -1559,7 +1559,7 @@ const ScheduleBoard = ({ refreshToken }) => {
     try {
       setLoading(true);
       const res = await axios.post(
-        `http://localhost:5000/api/attendance/schedule/${cell.id}/checkin`,
+        `https://backendchamcong-production.up.railway.app/api/attendance/schedule/${cell.id}/checkin`,
         {},
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
@@ -1621,7 +1621,7 @@ const ScheduleBoard = ({ refreshToken }) => {
     try {
       setLoading(true);
       const res = await axios.post(
-        `http://localhost:5000/api/attendance/schedule/${cell.id}/checkout`,
+        `https://backendchamcong-production.up.railway.app/api/attendance/schedule/${cell.id}/checkout`,
         {},
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
@@ -1690,7 +1690,7 @@ const ScheduleBoard = ({ refreshToken }) => {
     try {
       setLoading(true);
       const res = await axios.delete(
-        `http://localhost:5000/api/attendance/schedule/${cell.id}/cancel`,
+        `https://backendchamcong-production.up.railway.app/api/attendance/schedule/${cell.id}/cancel`,
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
       
@@ -1721,7 +1721,7 @@ const ScheduleBoard = ({ refreshToken }) => {
 
     try {
       const res = await axios.get(
-        'http://localhost:5000/api/attendance/truc-thay/my-shifts',
+        'https://backendchamcong-production.up.railway.app/api/attendance/truc-thay/my-shifts',
         { 
           headers: { Authorization: `Bearer ${auth.token}` },
           timeout: 10000

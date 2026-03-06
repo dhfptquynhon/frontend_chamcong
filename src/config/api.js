@@ -1,10 +1,11 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://backendchamcong-production.up.railway.app/api';
 
 export const API_ENDPOINTS = {
   // Auth
   LOGIN: `${API_BASE_URL}/auth/login`,
+  REGISTER: `${API_BASE_URL}/auth/register`,
   VERIFY: `${API_BASE_URL}/auth/verify`,
-  
+
   // Admin
   ADMIN_EMPLOYEES: `${API_BASE_URL}/admin/employees`,
   ADMIN_CREATE_EMPLOYEE: `${API_BASE_URL}/admin/employees/create`,
@@ -15,14 +16,14 @@ export const API_ENDPOINTS = {
   ADMIN_PENDING_TRUCTHAY: `${API_BASE_URL}/admin/pending-tructhay`,
   ADMIN_APPROVE_TRUCTHAY: (id) => `${API_BASE_URL}/admin/tructhay/${id}/approve`,
   ADMIN_EMPLOYEE_DETAIL: (id) => `${API_BASE_URL}/admin/employee/${id}/detail`,
-  
+
   // Attendance
   ATTENDANCE_SCHEDULE: `${API_BASE_URL}/attendance/schedule`,
   ATTENDANCE_REGISTER: `${API_BASE_URL}/attendance/schedule/register`,
   ATTENDANCE_CHECKIN: (id) => `${API_BASE_URL}/attendance/schedule/${id}/checkin`,
   ATTENDANCE_CHECKOUT: (id) => `${API_BASE_URL}/attendance/schedule/${id}/checkout`,
   ATTENDANCE_MONTHLY_REPORT: `${API_BASE_URL}/attendance/monthly-report`,
-  
+
   // Trực thay
   TRUCTHAY_REQUEST: `${API_BASE_URL}/truc-thay/request`,
   TRUCTHAY_CANCEL: (id) => `${API_BASE_URL}/truc-thay/cancel/${id}`,

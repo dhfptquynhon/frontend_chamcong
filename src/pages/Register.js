@@ -16,7 +16,7 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/auth/register', {
+      await axios.post('https://backendchamcong-production.up.railway.app/api/auth/register', {
         ma_nhan_vien,
         ten_nhan_vien,
         password

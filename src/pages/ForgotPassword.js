@@ -32,7 +32,7 @@ const ForgotPassword = () => {
     }
 
     try {
-      await axios.post('http://localhost:5000/api/auth/forgot-password', {
+      await axios.post('https://backendchamcong-production.up.railway.app/api/auth/forgot-password', {
         ma_nhan_vien,
         default_password,
         new_password
