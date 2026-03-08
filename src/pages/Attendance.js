@@ -243,17 +243,23 @@ const Attendance = ({ onChanged }) => {
 
   const renderParticipants = (shift) => {
     if (!shift.participants || shift.participants.length === 0) {
-      return <Typography variant="body2">Chưa có ai khác đăng ký ca này.</Typography>;
+      return <Typography variant="body2">Chưa có ai khác</Typography>;
     }
     const others = shift.participants.filter((p) => !p.is_me);
     if (others.length === 0) {
-      return <Typography variant="body2">Chỉ có bạn đăng ký ca này.</Typography>;
+      return <Typography variant="body2">Chỉ có bạn</Typography>;
     }
+    const maxDisplay = 3;
+    const displayNames = others.slice(0, maxDisplay).map(p => p.ten_nhan_vien).join(', ');
+    const remaining = others.length - maxDisplay;
+    
     return (
-      <Typography variant="body2">
-        Nhân viên cùng ca:{' '}
-        {others.map((p) => p.ten_nhan_vien).join(', ')}
-      </Typography>
+      <Tooltip title={others.map(p => p.ten_nhan_vien).join(', ')}>
+        <Typography variant="body2" sx={{ cursor: 'help' }}>
+          {displayNames}
+          {remaining > 0 && ` +${remaining}`}
+        </Typography>
+      </Tooltip>
     );
   };
 
@@ -307,102 +313,121 @@ const Attendance = ({ onChanged }) => {
           </Typography>
         </Paper>
       ) : (
-        <Stack spacing={2}>
+        <Grid container spacing={2}>
           {shifts.map((shift) => {
             const statusCfg = STATUS_CONFIG[shift.trang_thai] || STATUS_CONFIG.registered;
-            const disabled =
-              loadingActionId === shift.id ||
-              shift.trang_thai === 'checked_out';
+            const disabled = loadingActionId === shift.id || shift.trang_thai === 'checked_out';
 
             return (
-              <Paper key={shift.id} sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Box>
-                    <Typography variant="subtitle1" fontWeight={600}>
+              <Grid item xs={12} sm={6} md={4} key={shift.id}>
+                <Paper 
+                  sx={{ 
+                    p: 2, 
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      boxShadow: 3,
+                      transform: 'translateY(-2px)'
+                    }
+                  }}
+                >
+                  {/* Header */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                    <Typography variant="subtitle1" fontWeight={600} sx={{ lineHeight: 1.2 }}>
                       {SHIFT_LABELS[shift.ca] || shift.ca}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Ngày: {formattedToday}
-                    </Typography>
+                    <Chip
+                      label={statusCfg.label}
+                      color={statusCfg.color}
+                      size="small"
+                      icon={<AccessTimeIcon fontSize="small" />}
+                      sx={{ ml: 1 }}
+                    />
                   </Box>
-                  <Chip
-                    label={statusCfg.label}
-                    color={statusCfg.color}
-                    size="small"
-                    icon={<AccessTimeIcon fontSize="small" />}
-                  />
-                </Box>
 
-                <Divider sx={{ my: 1.5 }} />
+                  <Divider sx={{ my: 1 }} />
 
-                <Stack spacing={0.5}>
-                  <Typography variant="body2">
-                    Giờ vào:{' '}
-                    <strong>{formatTime(shift.gio_vao) || 'Chưa check-in'}</strong>
-                  </Typography>
-                  <Typography variant="body2">
-                    Giờ ra:{' '}
-                    <strong>{formatTime(shift.gio_ra) || 'Chưa check-out'}</strong>
-                  </Typography>
-                  <Typography variant="body2">
-                    Thời gian làm:{' '}
-                    <strong>
-                      {shift.thoi_gian_lam != null ? `${Number(shift.thoi_gian_lam).toFixed(2)} giờ` : '—'}
-                    </strong>
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                    <PeopleIcon sx={{ fontSize: 16, mr: 0.5, color: 'text.secondary' }} />
-                    {renderParticipants(shift)}
+                  {/* Nội dung */}
+                  <Stack spacing={1} sx={{ flexGrow: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary">Giờ vào:</Typography>
+                      <Typography variant="body2" fontWeight={500}>
+                        {formatTime(shift.gio_vao) || '--:--'}
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary">Giờ ra:</Typography>
+                      <Typography variant="body2" fontWeight={500}>
+                        {formatTime(shift.gio_ra) || '--:--'}
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary">Thời gian làm:</Typography>
+                      <Typography variant="body2" fontWeight={500}>
+                        {shift.thoi_gian_lam != null ? `${Number(shift.thoi_gian_lam).toFixed(2)}h` : '—'}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                      <PeopleIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="text.secondary" sx={{ mr: 0.5 }}>
+                        Cùng ca:
+                      </Typography>
+                      {renderParticipants(shift)}
+                    </Box>
+                  </Stack>
+
+                  {/* Footer */}
+                  <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'flex-end' }}>
+                    <Tooltip title="Check-in">
+                      <span>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          startIcon={<LoginIcon />}
+                          disabled={disabled || shift.trang_thai !== 'registered'}
+                          onClick={() => handleCheckIn(shift)}
+                          sx={{ minWidth: 90 }}
+                        >
+                          {loadingActionId === shift.id && shift.trang_thai === 'registered' ? (
+                            <CircularProgress size={18} />
+                          ) : (
+                            'Check-in'
+                          )}
+                        </Button>
+                      </span>
+                    </Tooltip>
+
+                    <Tooltip title="Check-out">
+                      <span>
+                        <Button
+                          variant="contained"
+                          color="secondary"
+                          size="small"
+                          startIcon={<LogoutIcon />}
+                          disabled={disabled || shift.trang_thai !== 'checked_in'}
+                          onClick={() => handleCheckOut(shift)}
+                          sx={{ minWidth: 90 }}
+                        >
+                          {loadingActionId === shift.id && shift.trang_thai === 'checked_in' ? (
+                            <CircularProgress size={18} />
+                          ) : (
+                            'Check-out'
+                          )}
+                        </Button>
+                      </span>
+                    </Tooltip>
                   </Box>
-                </Stack>
-
-                <Box sx={{ display: 'flex', gap: 1.5, mt: 2 }}>
-                  <Tooltip title="Check-in cho ca đã đăng ký">
-                    <span>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        size="small"
-                        startIcon={<LoginIcon />}
-                        disabled={
-                          disabled || shift.trang_thai !== 'registered'
-                        }
-                        onClick={() => handleCheckIn(shift)}
-                      >
-                        {loadingActionId === shift.id && shift.trang_thai === 'registered' ? (
-                          <CircularProgress size={18} />
-                        ) : (
-                          'Check-in'
-                        )}
-                      </Button>
-                    </span>
-                  </Tooltip>
-
-                  <Tooltip title="Check-out khi đã check-in">
-                    <span>
-                      <Button
-                        variant="contained"
-                        color="secondary"
-                        size="small"
-                        startIcon={<LogoutIcon />}
-                        disabled={
-                          disabled || shift.trang_thai !== 'checked_in'
-                        }
-                        onClick={() => handleCheckOut(shift)}
-                      >
-                        {loadingActionId === shift.id && shift.trang_thai === 'checked_in' ? (
-                          <CircularProgress size={18} />
-                        ) : (
-                          'Check-out'
-                        )}
-                      </Button>
-                    </span>
-                  </Tooltip>
-                </Box>
-              </Paper>
+                </Paper>
+              </Grid>
             );
           })}
-        </Stack>
+        </Grid>
       )}
 
       {/* Dialog yêu cầu điều chỉnh giờ */}

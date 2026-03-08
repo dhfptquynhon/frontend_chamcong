@@ -2232,7 +2232,7 @@ const ScheduleBoard = ({ refreshToken }) => {
               startIcon={<TodayIcon />}
               onClick={() => handleOpenDailySummary(today.toISOString().split('T')[0])}
             >
-              Hôm nay
+              Ca trong ngày
             </Button>
             <Button
               variant="outlined"

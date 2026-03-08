@@ -68,7 +68,7 @@ const Navbar = () => {
                 textTransform: 'none'
               }}
             >
-              Lịch sử
+              {/* Lịch sử */}
             </Button>
           )}
           <Button 
