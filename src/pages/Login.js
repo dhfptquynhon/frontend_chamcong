@@ -18,8 +18,8 @@ const Login = () => {
     const response = await axios.post(
       "https://backendchamcong-production.up.railway.app/api/auth/login",
       {
-        ma_nhan_vien,
-        password
+      ma_nhan_vien: maNhanVien,
+      mat_khau: password
       }
     );
 
