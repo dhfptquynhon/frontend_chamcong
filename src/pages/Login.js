@@ -13,11 +13,14 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const response = await axios.post('https://backendchamcong-production.up.railway.app/api/auth/login', {
+  try {
+    const response = await axios.post(
+      'https://backendchamcong-production.up.railway.app/api/auth/login',
+      {
         ma_nhan_vien,
-        password
-      });
+        mat_khau: password
+      }
+    );
 
       localStorage.setItem('auth', JSON.stringify(response.data));
       setAuth(response.data);
