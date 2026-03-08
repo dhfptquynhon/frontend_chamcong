@@ -173,7 +173,7 @@ const AdminDashboard = () => {
     
     setLoading(true);
     try {
-      const res = await axios.get('https://backendchamcong-production.up.railway.app/api/admin/employees', {
+      const res = await axios.get('https://backendchamcong-production.up.railway.app/api/attendance/admin/employees', {
         headers: { Authorization: `Bearer ${auth.token}` }
       });
       setEmployees(res.data);
@@ -191,7 +191,7 @@ const AdminDashboard = () => {
     if (!auth?.token) return;
     
     try {
-      const res = await axios.get('https://backendchamcong-production.up.railway.app/api/admin/overview-stats', {
+      const res = await axios.get('https://backendchamcong-production.up.railway.app/api/attendance/admin/overview-stats', {
         headers: { Authorization: `Bearer ${auth.token}` }
       });
       setStats(res.data);
@@ -209,7 +209,7 @@ const AdminDashboard = () => {
     setAttendanceReport(prev => ({ ...prev, loading: true }));
     try {
       const res = await axios.get(
-        `https://backendchamcong-production.up.railway.app/api/admin/attendance-report?month=${month}&year=${year}`,
+        `https://backendchamcong-production.up.railway.app/api/attendance/admin/attendance-report?month=${month}&year=${year}`,
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
       
@@ -237,7 +237,7 @@ const AdminDashboard = () => {
     if (!auth?.token) return;
     
     try {
-      const url = `https://backendchamcong-production.up.railway.app/api/admin/export/attendance-report?month=${reportDate.month}&year=${reportDate.year}`;
+      const url = `https://backendchamcong-production.up.railway.app/api/attendance/admin/export/attendance-report?month=${reportDate.month}&year=${reportDate.year}`;
       
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${auth.token}` },
@@ -274,7 +274,7 @@ const AdminDashboard = () => {
     if (!auth?.token) return;
     
     try {
-      const res = await axios.get('https://backendchamcong-production.up.railway.app/api/admin/pending-tructhay', {
+      const res = await axios.get('https://backendchamcong-production.up.railway.app/api/attendance/admin/pending-tructhay', {
         headers: { Authorization: `Bearer ${auth.token}` }
       });
       setPendingTrucThay(res.data);
@@ -292,16 +292,16 @@ const AdminDashboard = () => {
     setLoading(true);
     try {
       const [scheduleRes, attendanceRes, statsRes, trucThayRes] = await Promise.all([
-        axios.get(`https://backendchamcong-production.up.railway.app/api/admin/employee/${employeeId}/schedule?month=${reportDate.month}&year=${reportDate.year}`, {
+        axios.get(`https://backendchamcong-production.up.railway.app/api/attendance/admin/employee/${employeeId}/schedule?month=${reportDate.month}&year=${reportDate.year}`, {
           headers: { Authorization: `Bearer ${auth.token}` }
         }),
-        axios.get(`https://backendchamcong-production.up.railway.app/api/admin/employee/${employeeId}/attendance?month=${reportDate.month}&year=${reportDate.year}`, {
+        axios.get(`https://backendchamcong-production.up.railway.app/api/attendance/admin/employee/${employeeId}/attendance?month=${reportDate.month}&year=${reportDate.year}`, {
           headers: { Authorization: `Bearer ${auth.token}` }
         }),
-        axios.get(`https://backendchamcong-production.up.railway.app/api/admin/employee/${employeeId}/monthly-stats?month=${reportDate.month}&year=${reportDate.year}`, {
+        axios.get(`https://backendchamcong-production.up.railway.app/api/attendance/admin/employee/${employeeId}/monthly-stats?month=${reportDate.month}&year=${reportDate.year}`, {
           headers: { Authorization: `Bearer ${auth.token}` }
         }),
-        axios.get(`https://backendchamcong-production.up.railway.app/api/admin/employee/${employeeId}/tructhay`, {
+        axios.get(`https://backendchamcong-production.up.railway.app/api/attendance/admin/employee/${employeeId}/tructhay`, {
           headers: { Authorization: `Bearer ${auth.token}` }
         })
       ]);
@@ -328,7 +328,7 @@ const AdminDashboard = () => {
     if (!auth?.token) return;
     
     try {
-      const url = `https://backendchamcong-production.up.railway.app/api/admin/export/summary-report?month=${reportDate.month}&year=${reportDate.year}`;
+      const url = `https://backendchamcong-production.up.railway.app/api/attendance/admin/export/summary-report?month=${reportDate.month}&year=${reportDate.year}`;
       
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${auth.token}` },
@@ -396,7 +396,7 @@ const AdminDashboard = () => {
       setLoading(true);
       
       if (mode === 'create') {
-        await axios.post('https://backendchamcong-production.up.railway.app/api/admin/employees/create', employee, {
+        await axios.post('https://backendchamcong-production.up.railway.app/api/attendance/admin/employees/create', employee, {
           headers: { Authorization: `Bearer ${auth.token}` }
         });
       } else {
@@ -410,7 +410,7 @@ const AdminDashboard = () => {
           updateData.password = employee.password;
         }
         
-        await axios.put(`https://backendchamcong-production.up.railway.app/api/admin/employees/${selectedEmployee?.id}`, updateData, {
+        await axios.put(`https://backendchamcong-production.up.railway.app/api/attendance/admin/employees/${selectedEmployee?.id}`, updateData, {
           headers: { Authorization: `Bearer ${auth.token}` }
         });
       }
@@ -442,7 +442,7 @@ const AdminDashboard = () => {
 
     try {
       setLoading(true);
-      await axios.delete(`https://backendchamcong-production.up.railway.app/api/admin/employees/${employeeId}`, {
+      await axios.delete(`https://backendchamcong-production.up.railway.app/api/attendance/admin/employees/${employeeId}`, {
         headers: { Authorization: `Bearer ${auth.token}` }
       });
       
@@ -466,7 +466,7 @@ const AdminDashboard = () => {
       setLoading(true);
       
       const res = await axios.post(
-        `https://backendchamcong-production.up.railway.app/api/admin/tructhay/${trucThayId}/approve`,
+        `https://backendchamcong-production.up.railway.app/api/attendance/admin/tructhay/${trucThayId}/approve`,
         { approve },
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );

@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom'; // Đã thêm Navigate
-import { TextField, Button, Container, Typography, Box, Paper } from '@mui/material';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { TextField, Button, Container, Typography, Box, Paper, Alert } from '@mui/material';
 import axios from 'axios';
 import AuthContext from '../context/AuthContext';
 
@@ -13,42 +13,49 @@ const Register = () => {
   const { auth } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  // Kiểm tra quyền admin
+  if (!auth) {
+    return <Navigate to="/login" />;
+  }
+  if (!auth.employee?.is_admin) {
+    return <Navigate to="/" />;
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('https://backendchamcong-production.up.railway.app/api/auth/register', {
-        ma_nhan_vien,
-        ten_nhan_vien,
-        password
-      });
-      setSuccess('Đăng ký thành công. Vui lòng đăng nhập.');
+      await axios.post(
+        'https://backendchamcong-production.up.railway.app/api/auth/register',
+        { ma_nhan_vien, ten_nhan_vien, password },
+        { headers: { Authorization: `Bearer ${auth.token}` } } // gửi token admin
+      );
+      setSuccess('Đăng ký thành công.');
       setError('');
+      setMaNhanVien('');
+      setTenNhanVien('');
+      setPassword('');
     } catch (err) {
       setError(err.response?.data?.message || 'Đăng ký thất bại');
       setSuccess('');
     }
   };
 
-  if (auth) {
-    return <Navigate to="/" />;
-  }
-
   return (
     <Container maxWidth="sm">
       <Box sx={{ mt: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
           <Typography component="h1" variant="h5" align="center">
-            Đăng ký tài khoản
+            Tạo tài khoản nhân viên (Admin)
           </Typography>
           {error && (
-            <Typography color="error" align="center" sx={{ mt: 2 }}>
+            <Alert severity="error" sx={{ mt: 2 }}>
               {error}
-            </Typography>
+            </Alert>
           )}
           {success && (
-            <Typography color="success.main" align="center" sx={{ mt: 2 }}>
+            <Alert severity="success" sx={{ mt: 2 }}>
               {success}
-            </Typography>
+            </Alert>
           )}
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
             <TextField
@@ -82,11 +89,8 @@ const Register = () => {
               variant="contained"
               sx={{ mt: 3, mb: 2 }}
             >
-              Đăng ký
+              Tạo tài khoản
             </Button>
-            <Typography align="center">
-              Đã có tài khoản? <Button onClick={() => navigate('/login')}>Đăng nhập</Button>
-            </Typography>
           </Box>
         </Paper>
       </Box>

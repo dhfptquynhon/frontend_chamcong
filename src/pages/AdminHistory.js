@@ -42,7 +42,8 @@ import {
   RadioGroup,
   Radio,
   FormLabel,
-  FormHelperText
+  FormHelperText,
+  Switch
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
@@ -69,7 +70,11 @@ import {
   History as HistoryIcon,
   NotificationsActive as NotificationsActiveIcon,
   Edit as EditIcon,
-  Save as SaveIcon
+  Save as SaveIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  VpnKey as VpnKeyIcon,
+  AdminPanelSettings as AdminPanelSettingsIcon
 } from '@mui/icons-material';
 import AuthContext from '../context/AuthContext';
 import axios from 'axios';
@@ -389,7 +394,7 @@ const exportChamCongExcel = (
 };
 
 // =======================
-// Statistics Cards Component - ĐÃ SỬA ĐỂ HIỂN THỊ YÊU CẦU ĐIỀU CHỈNH GIỜ CÙNG HÀNG
+// Statistics Cards Component
 // =======================
 const StatisticsCards = ({ totals, stats, pendingRequests, requests, onProcessRequest, loadingRequests }) => {
   const totalRegistered = Object.values(stats).reduce((sum, stat) => sum + (stat.total_registered || 0), 0);
@@ -459,7 +464,7 @@ const StatisticsCards = ({ totals, stats, pendingRequests, requests, onProcessRe
         </Grid>
       ))}
 
-      {/* Thẻ Yêu cầu chờ duyệt - có hiển thị danh sách yêu cầu */}
+      {/* Thẻ Yêu cầu chờ duyệt */}
       <Grid item xs={12} sm={6} md={3}>
         <TimeAdjustmentRequestsCompact 
           requests={requests}
@@ -473,7 +478,7 @@ const StatisticsCards = ({ totals, stats, pendingRequests, requests, onProcessRe
 };
 
 // =======================
-// Time Adjustment Requests Compact Component (Hiển thị trong thẻ)
+// Time Adjustment Requests Compact Component
 // =======================
 const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessRequest, loading }) => {
   const [openDialog, setOpenDialog] = useState(false);
@@ -1297,6 +1302,33 @@ const AdminHistory = () => {
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
+  // ======================
+  // State cho quản lý nhân viên
+  // ======================
+  const [employeeDialog, setEmployeeDialog] = useState({
+    open: false,
+    mode: 'create', // 'create' hoặc 'edit'
+    employee: {
+      ma_nhan_vien: '',
+      ten_nhan_vien: '',
+      password: '',
+      is_admin: false
+    },
+    errors: {}
+  });
+
+  // ======================
+  // State cho reset mật khẩu
+  // ======================
+  const [resetPasswordDialog, setResetPasswordDialog] = useState({
+    open: false,
+    employee: null,
+    newPassword: '',
+    confirmPassword: '',
+    error: '',
+    success: ''
+  });
+
   // Format date function
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -1631,6 +1663,149 @@ const AdminHistory = () => {
     };
   };
 
+  // ======================
+  // Hàm xử lý quản lý nhân viên
+  // ======================
+  const openEmployeeDialog = (mode, employee = null) => {
+    setEmployeeDialog({
+      open: true,
+      mode,
+      employee: employee ? {
+        id: employee.id,
+        ma_nhan_vien: employee.ma_nhan_vien,
+        ten_nhan_vien: employee.ten_nhan_vien,
+        password: '',
+        is_admin: employee.is_admin || false
+      } : {
+        ma_nhan_vien: '',
+        ten_nhan_vien: '',
+        password: '',
+        is_admin: false
+      },
+      errors: {}
+    });
+  };
+
+  const handleSaveEmployee = async () => {
+    const { employee, mode } = employeeDialog;
+    const errors = {};
+
+    if (!employee.ma_nhan_vien.trim()) errors.ma_nhan_vien = 'Mã nhân viên là bắt buộc';
+    if (!employee.ten_nhan_vien.trim()) errors.ten_nhan_vien = 'Tên nhân viên là bắt buộc';
+    if (mode === 'create' && !employee.password) errors.password = 'Mật khẩu là bắt buộc';
+
+    if (Object.keys(errors).length > 0) {
+      setEmployeeDialog({ ...employeeDialog, errors });
+      return;
+    }
+
+    try {
+      setLoadingEmployees(true);
+      
+      if (mode === 'create') {
+        await axios.post('https://backendchamcong-production.up.railway.app/api/attendance/admin/employees/create', {
+          ma_nhan_vien: employee.ma_nhan_vien,
+          ten_nhan_vien: employee.ten_nhan_vien,
+          password: employee.password,
+          is_admin: employee.is_admin
+        }, {
+          headers: { Authorization: `Bearer ${auth.token}` }
+        });
+        showSnackbar('Tạo nhân viên thành công!', 'success');
+      } else {
+        const updateData = {
+          ten_nhan_vien: employee.ten_nhan_vien,
+          is_admin: employee.is_admin
+        };
+        if (employee.password) {
+          updateData.password = employee.password;
+        }
+        await axios.put(`https://backendchamcong-production.up.railway.app/api/attendance/admin/employees/${employee.id}`, updateData, {
+          headers: { Authorization: `Bearer ${auth.token}` }
+        });
+        showSnackbar('Cập nhật nhân viên thành công!', 'success');
+      }
+
+      // Refresh danh sách
+      await fetchRegisteredUsers();
+      setEmployeeDialog({ ...employeeDialog, open: false });
+      
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || 'Có lỗi xảy ra';
+      showSnackbar(errorMsg, 'error');
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
+
+  const handleDeleteEmployee = async (employeeId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa nhân viên này? Hành động này không thể hoàn tác.')) {
+      return;
+    }
+
+    try {
+      setLoadingEmployees(true);
+      await axios.delete(`https://backendchamcong-production.up.railway.app/api/attendance/admin/employees/${employeeId}`, {
+        headers: { Authorization: `Bearer ${auth.token}` }
+      });
+      
+      // Refresh danh sách
+      await fetchRegisteredUsers();
+      showSnackbar('Xóa nhân viên thành công!', 'success');
+      
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || 'Không thể xóa nhân viên';
+      showSnackbar(errorMsg, 'error');
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
+
+  const openResetPasswordDialog = (employee) => {
+    setResetPasswordDialog({
+      open: true,
+      employee,
+      newPassword: '',
+      confirmPassword: '',
+      error: '',
+      success: ''
+    });
+  };
+
+  const handleResetPassword = async () => {
+    const { employee, newPassword, confirmPassword } = resetPasswordDialog;
+
+    if (!newPassword || !confirmPassword) {
+      setResetPasswordDialog(prev => ({ ...prev, error: 'Vui lòng nhập đầy đủ mật khẩu' }));
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setResetPasswordDialog(prev => ({ ...prev, error: 'Mật khẩu xác nhận không khớp' }));
+      return;
+    }
+    if (newPassword.length < 6) {
+      setResetPasswordDialog(prev => ({ ...prev, error: 'Mật khẩu phải có ít nhất 6 ký tự' }));
+      return;
+    }
+
+    try {
+      setLoadingEmployees(true);
+      await axios.post(
+        'https://backendchamcong-production.up.railway.app/api/attendance/admin/reset-password',
+        { ma_nhan_vien: employee.ma_nhan_vien, new_password: newPassword },
+        { headers: { Authorization: `Bearer ${auth.token}` } }
+      );
+      setResetPasswordDialog(prev => ({ ...prev, success: 'Đặt lại mật khẩu thành công!', error: '' }));
+      setTimeout(() => {
+        setResetPasswordDialog({ open: false, employee: null, newPassword: '', confirmPassword: '', error: '', success: '' });
+      }, 1500);
+    } catch (err) {
+      setResetPasswordDialog(prev => ({ ...prev, error: err.response?.data?.message || 'Có lỗi xảy ra' }));
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
+
   // Handle tab change
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -1928,6 +2103,16 @@ const AdminHistory = () => {
               </TextField>
               
               <Button
+                variant="contained"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={() => openEmployeeDialog('create')}
+                sx={{ fontSize: '0.8rem', py: 0.6 }}
+              >
+                Thêm nhân viên
+              </Button>
+              
+              <Button
                 variant="outlined"
                 size="small"
                 startIcon={<RefreshIcon />}
@@ -2002,15 +2187,45 @@ const AdminHistory = () => {
                           />
                         </TableCell>
                         <TableCell align="center" sx={{ fontSize: '0.8rem', py: 0.8 }}>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<VisibilityIcon sx={{ fontSize: '1rem' }} />}
-                            onClick={() => fetchUserDetail(user.id)}
-                            sx={{ fontSize: '0.7rem', py: 0.3 }}
-                          >
-                            Chi tiết
-                          </Button>
+                          <Stack direction="row" spacing={0.5} justifyContent="center">
+                            <Tooltip title="Sửa">
+                              <IconButton 
+                                size="small" 
+                                color="warning" 
+                                onClick={() => openEmployeeDialog('edit', user)}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Đặt lại mật khẩu">
+                              <IconButton 
+                                size="small" 
+                                color="info" 
+                                onClick={() => openResetPasswordDialog(user)}
+                              >
+                                <VpnKeyIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Xóa">
+                              <IconButton 
+                                size="small" 
+                                color="error" 
+                                onClick={() => handleDeleteEmployee(user.id)}
+                                disabled={user.id === auth.employee.id}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Chi tiết">
+                              <IconButton 
+                                size="small" 
+                                color="primary" 
+                                onClick={() => fetchUserDetail(user.id)}
+                              >
+                                <VisibilityIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
                         </TableCell>
                       </TableRow>
                     );
@@ -2021,6 +2236,145 @@ const AdminHistory = () => {
           )}
         </Paper>
       </TabPanel>
+
+      {/* Dialog tạo/sửa nhân viên */}
+      <Dialog
+        open={employeeDialog.open}
+        onClose={() => setEmployeeDialog({ ...employeeDialog, open: false })}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {employeeDialog.mode === 'create' ? '➕ Thêm nhân viên mới' : '✏️ Sửa thông tin nhân viên'}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <TextField
+              fullWidth
+              label="Mã nhân viên *"
+              value={employeeDialog.employee.ma_nhan_vien}
+              onChange={(e) => setEmployeeDialog({
+                ...employeeDialog,
+                employee: { ...employeeDialog.employee, ma_nhan_vien: e.target.value },
+                errors: { ...employeeDialog.errors, ma_nhan_vien: '' }
+              })}
+              error={!!employeeDialog.errors.ma_nhan_vien}
+              helperText={employeeDialog.errors.ma_nhan_vien}
+              sx={{ mb: 2 }}
+              disabled={employeeDialog.mode === 'edit'}
+            />
+            
+            <TextField
+              fullWidth
+              label="Tên nhân viên *"
+              value={employeeDialog.employee.ten_nhan_vien}
+              onChange={(e) => setEmployeeDialog({
+                ...employeeDialog,
+                employee: { ...employeeDialog.employee, ten_nhan_vien: e.target.value },
+                errors: { ...employeeDialog.errors, ten_nhan_vien: '' }
+              })}
+              error={!!employeeDialog.errors.ten_nhan_vien}
+              helperText={employeeDialog.errors.ten_nhan_vien}
+              sx={{ mb: 2 }}
+            />
+            
+            <TextField
+              fullWidth
+              label={employeeDialog.mode === 'create' ? "Mật khẩu *" : "Mật khẩu mới"}
+              type="password"
+              value={employeeDialog.employee.password}
+              onChange={(e) => setEmployeeDialog({
+                ...employeeDialog,
+                employee: { ...employeeDialog.employee, password: e.target.value },
+                errors: { ...employeeDialog.errors, password: '' }
+              })}
+              error={!!employeeDialog.errors.password}
+              helperText={employeeDialog.errors.password || (employeeDialog.mode === 'edit' ? 'Để trống nếu không thay đổi mật khẩu' : '')}
+              sx={{ mb: 2 }}
+            />
+            
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={employeeDialog.employee.is_admin}
+                  onChange={(e) => setEmployeeDialog({
+                    ...employeeDialog,
+                    employee: { ...employeeDialog.employee, is_admin: e.target.checked }
+                  })}
+                />
+              }
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <AdminPanelSettingsIcon fontSize="small" />
+                  <Typography>Cấp quyền Quản trị viên</Typography>
+                </Box>
+              }
+            />
+            
+            <Alert severity="info" sx={{ mt: 2 }}>
+              <Typography variant="body2">
+                <strong>Lưu ý:</strong> Mật khẩu sẽ được mã hóa trước khi lưu vào hệ thống.
+              </Typography>
+            </Alert>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEmployeeDialog({ ...employeeDialog, open: false })}>
+            Hủy
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleSaveEmployee}
+            disabled={loadingEmployees}
+          >
+            {loadingEmployees ? 'Đang xử lý...' : employeeDialog.mode === 'create' ? 'Tạo mới' : 'Cập nhật'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog reset mật khẩu */}
+      <Dialog
+        open={resetPasswordDialog.open}
+        onClose={() => setResetPasswordDialog({ ...resetPasswordDialog, open: false })}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Đặt lại mật khẩu cho {resetPasswordDialog.employee?.ten_nhan_vien}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            {resetPasswordDialog.error && (
+              <Alert severity="error" sx={{ mb: 2 }}>{resetPasswordDialog.error}</Alert>
+            )}
+            {resetPasswordDialog.success && (
+              <Alert severity="success" sx={{ mb: 2 }}>{resetPasswordDialog.success}</Alert>
+            )}
+            <TextField
+              fullWidth
+              label="Mật khẩu mới"
+              type="password"
+              value={resetPasswordDialog.newPassword}
+              onChange={(e) => setResetPasswordDialog({ ...resetPasswordDialog, newPassword: e.target.value, error: '' })}
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              label="Xác nhận mật khẩu"
+              type="password"
+              value={resetPasswordDialog.confirmPassword}
+              onChange={(e) => setResetPasswordDialog({ ...resetPasswordDialog, confirmPassword: e.target.value, error: '' })}
+              sx={{ mb: 2 }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setResetPasswordDialog({ ...resetPasswordDialog, open: false })}>Hủy</Button>
+          <Button variant="contained" onClick={handleResetPassword} disabled={loadingEmployees}>
+            {loadingEmployees ? 'Đang xử lý...' : 'Đặt lại'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Dialog xem chi tiết user */}
       <Dialog

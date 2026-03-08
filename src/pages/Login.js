@@ -8,7 +8,7 @@ const Login = () => {
   const [ma_nhan_vien, setMaNhanVien] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { setAuth } = useContext(AuthContext);
+  const { setAuth, auth } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -65,17 +65,28 @@ const Login = () => {
             >
               Đăng nhập
             </Button>
+            
+            {/* ====================== */}
+            {/* PHẦN ĐÃ ĐƯỢC CẬP NHẬT */}
+            {/* ====================== */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-              <Button 
-                onClick={() => navigate('/forgot-password')}
-                sx={{ textTransform: 'none', fontSize: '0.875rem' }}
-              >
-                Quên mật khẩu?
-              </Button>
-              <Typography variant="body2">
-                Chưa có tài khoản? <Button onClick={() => navigate('/register')} sx={{ textTransform: 'none' }}>Đăng ký</Button>
-              </Typography>
+              {/* Chỉ admin mới thấy link Quên mật khẩu (vì chỉ admin được reset) */}
+              {auth?.employee?.is_admin && (
+                <Button 
+                  onClick={() => navigate('/forgot-password')} 
+                  sx={{ textTransform: 'none', fontSize: '0.875rem' }}
+                >
+                  Quên mật khẩu?
+                </Button>
+              )}
+              {/* Chỉ admin mới thấy link Đăng ký */}
+              {auth?.employee?.is_admin && (
+                <Typography variant="body2">
+                  Chưa có tài khoản? <Button onClick={() => navigate('/register')} sx={{ textTransform: 'none' }}>Đăng ký</Button>
+                </Typography>
+              )}
             </Box>
+            {/* ====================== */}
           </Box>
         </Paper>
       </Box>
