@@ -19,7 +19,7 @@ const Login = () => {
       "https://backendchamcong-production.up.railway.app/api/auth/login",
       {
         ma_nhan_vien,
-        mat_khau: password
+        mat_khau
       }
     );
 
