@@ -12,23 +12,25 @@ const Login = () => {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+
   try {
     const response = await axios.post(
-      'https://backendchamcong-production.up.railway.app/api/auth/login',
+      "https://backendchamcong-production.up.railway.app/api/auth/login",
       {
         ma_nhan_vien,
         mat_khau: password
       }
     );
 
-      localStorage.setItem('auth', JSON.stringify(response.data));
-      setAuth(response.data);
-      navigate('/');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Đăng nhập thất bại');
-    }
-  };
+    localStorage.setItem("auth", JSON.stringify(response.data));
+    setAuth(response.data);
+    navigate("/");
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
+    setError(err.response?.data?.message || "Đăng nhập thất bại");
+  }
+};
 
   return (
     <Container maxWidth="sm">
@@ -95,6 +97,7 @@ const Login = () => {
       </Box>
     </Container>
   );
+  
 };
 
 export default Login;
