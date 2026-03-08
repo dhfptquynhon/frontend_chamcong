@@ -394,11 +394,11 @@ const exportChamCongExcel = (
 };
 
 // =======================
-// Statistics Cards Component
+// Statistics Cards Component (ĐÃ SỬA: kiểm tra requests là array)
 // =======================
 const StatisticsCards = ({ totals, stats, pendingRequests, requests, onProcessRequest, loadingRequests }) => {
-  const totalRegistered = Object.values(stats).reduce((sum, stat) => sum + (stat.total_registered || 0), 0);
-  const totalCompleted = Object.values(stats).reduce((sum, stat) => sum + (stat.total_completed || 0), 0);
+  const totalRegistered = Object.values(stats || {}).reduce((sum, stat) => sum + (stat?.total_registered || 0), 0);
+  const totalCompleted = Object.values(stats || {}).reduce((sum, stat) => sum + (stat?.total_completed || 0), 0);
 
   const cards = [
     {
@@ -417,7 +417,7 @@ const StatisticsCards = ({ totals, stats, pendingRequests, requests, onProcessRe
     },
     {
       title: 'Tổng giờ làm',
-      value: `${totals.totalHours}h`,
+      value: `${totals?.totalHours || '0'}h`,
       icon: <AccessTimeIcon />,
       color: '#ed6c02',
       bgColor: alpha('#ed6c02', 0.1)
@@ -426,7 +426,6 @@ const StatisticsCards = ({ totals, stats, pendingRequests, requests, onProcessRe
 
   return (
     <Grid container spacing={2} sx={{ mb: 2.5 }}>
-      {/* 3 thẻ thống kê */}
       {cards.map((card, index) => (
         <Grid item xs={12} sm={6} md={3} key={index}>
           <Card sx={{ 
@@ -464,10 +463,9 @@ const StatisticsCards = ({ totals, stats, pendingRequests, requests, onProcessRe
         </Grid>
       ))}
 
-      {/* Thẻ Yêu cầu chờ duyệt */}
       <Grid item xs={12} sm={6} md={3}>
         <TimeAdjustmentRequestsCompact 
-          requests={requests}
+          requests={requests} // Đã được kiểm tra trong component con
           pendingCount={pendingRequests}
           onProcessRequest={onProcessRequest}
           loading={loadingRequests}
@@ -478,12 +476,16 @@ const StatisticsCards = ({ totals, stats, pendingRequests, requests, onProcessRe
 };
 
 // =======================
-// Time Adjustment Requests Compact Component
+// Time Adjustment Requests Compact Component (ĐÃ SỬA: kiểm tra requests là array)
 // =======================
 const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessRequest, loading }) => {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [processDialog, setProcessDialog] = useState({ open: false, approve: true, adjustedTime: '', adminNote: '' });
+
+  // Đảm bảo requests là array
+  const safeRequests = Array.isArray(requests) ? requests : [];
+  const safePendingCount = typeof pendingCount === 'number' ? pendingCount : 0;
 
   const getStatusChip = (status) => {
     switch(status) {
@@ -503,7 +505,7 @@ const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessReques
     setProcessDialog({
       open: true,
       approve,
-      adjustedTime: request.thoi_gian_de_xuat?.substring(0, 5) || '',
+      adjustedTime: request?.thoi_gian_de_xuat?.substring(0, 5) || '',
       adminNote: ''
     });
   };
@@ -528,7 +530,7 @@ const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessReques
   };
 
   // Hiển thị 3 yêu cầu gần nhất
-  const recentRequests = requests.slice(0, 3);
+  const recentRequests = safeRequests.slice(0, 3);
 
   return (
     <>
@@ -563,17 +565,16 @@ const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessReques
                 Yêu cầu chờ duyệt
               </Typography>
               <Typography variant="h6" fontWeight="bold" sx={{ color: '#f44336', fontSize: '1.1rem' }}>
-                {pendingCount}
+                {safePendingCount}
               </Typography>
             </Box>
           </Stack>
 
-          {/* Hiển thị 3 yêu cầu gần nhất */}
-          {pendingCount > 0 && (
+          {safePendingCount > 0 && (
             <Box sx={{ mt: 1.5 }}>
               {recentRequests.map((req, index) => (
                 <Box 
-                  key={req.id}
+                  key={req?.id || index}
                   sx={{ 
                     display: 'flex', 
                     justifyContent: 'space-between', 
@@ -583,7 +584,7 @@ const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessReques
                   }}
                 >
                   <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
-                    <strong>{req.ten_nhan_vien}</strong> - {req.loai_yeu_cau === 'checkin' ? 'Check-in' : 'Check-out'}
+                    <strong>{req?.ten_nhan_vien || 'N/A'}</strong> - {req?.loai_yeu_cau === 'checkin' ? 'Check-in' : 'Check-out'}
                   </Typography>
                   <Chip 
                     size="small" 
@@ -593,17 +594,17 @@ const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessReques
                   />
                 </Box>
               ))}
-              {requests.length > 3 && (
+              {safeRequests.length > 3 && (
                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', display: 'block', textAlign: 'center', mt: 0.5 }}>
-                  +{requests.length - 3} yêu cầu khác
+                  +{safeRequests.length - 3} yêu cầu khác
                 </Typography>
               )}
             </Box>
           )}
 
-          {pendingCount > 0 && (
+          {safePendingCount > 0 && (
             <Badge
-              badgeContent={pendingCount}
+              badgeContent={safePendingCount}
               color="error"
               sx={{
                 position: 'absolute',
@@ -627,7 +628,7 @@ const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessReques
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <PendingIcon />
-              <Typography variant="h6">YÊU CẦU ĐIỀU CHỈNH GIỜ ({pendingCount} chờ duyệt)</Typography>
+              <Typography variant="h6">YÊU CẦU ĐIỀU CHỈNH GIỜ ({safePendingCount} chờ duyệt)</Typography>
             </Box>
             <IconButton onClick={() => setOpenDialog(false)} sx={{ color: 'white' }}>
               <CloseIcon />
@@ -640,19 +641,19 @@ const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessReques
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
               <CircularProgress size={28} />
             </Box>
-          ) : requests.length === 0 ? (
+          ) : safeRequests.length === 0 ? (
             <Box sx={{ p: 3, textAlign: 'center' }}>
               <AccessTimeIcon sx={{ fontSize: 40, color: '#e0e0e0', mb: 1 }} />
               <Typography variant="body2" color="text.secondary">Không có yêu cầu điều chỉnh giờ</Typography>
             </Box>
           ) : (
             <List sx={{ maxHeight: 500, overflow: 'auto', p: 0 }}>
-              {requests.map((req) => {
-                const isPending = req.trang_thai === 'pending';
+              {safeRequests.map((req) => {
+                const isPending = req?.trang_thai === 'pending';
                 
                 return (
                   <ListItem 
-                    key={req.id}
+                    key={req?.id || Math.random()}
                     sx={{ 
                       borderBottom: '1px solid #f0f0f0',
                       bgcolor: isPending ? alpha('#ff9800', 0.05) : 'inherit',
@@ -664,31 +665,31 @@ const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessReques
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                       <Box>
                         <Typography variant="body2" fontWeight="bold">
-                          {req.ten_nhan_vien} ({req.ma_nhan_vien})
+                          {req?.ten_nhan_vien || 'N/A'} ({req?.ma_nhan_vien || 'N/A'})
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {new Date(req.ngay).toLocaleDateString('vi-VN')} - 
-                          {req.ca === 'ca1' ? ' Ca 1 (7:00-9:30)' :
-                           req.ca === 'ca2' ? ' Ca 2 (9:30-12:30)' :
-                           req.ca === 'ca3' ? ' Ca 3 (12:30-15:00)' : ' Ca 4 (15:00-17:30)'}
+                          {req?.ngay ? new Date(req.ngay).toLocaleDateString('vi-VN') : 'N/A'} - 
+                          {req?.ca === 'ca1' ? ' Ca 1 (7:00-9:30)' :
+                           req?.ca === 'ca2' ? ' Ca 2 (9:30-12:30)' :
+                           req?.ca === 'ca3' ? ' Ca 3 (12:30-15:00)' : ' Ca 4 (15:00-17:30)'}
                         </Typography>
                       </Box>
                       <Box>
-                        {getStatusChip(req.trang_thai)}
+                        {getStatusChip(req?.trang_thai)}
                       </Box>
                     </Box>
 
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 1 }}>
                       <Typography variant="caption">
-                        <strong>Loại:</strong> {getLoaiYeuCauText(req.loai_yeu_cau)}
+                        <strong>Loại:</strong> {getLoaiYeuCauText(req?.loai_yeu_cau)}
                       </Typography>
                       <Typography variant="caption">
-                        <strong>Giờ vào:</strong> {req.gio_vao_hien_tai ? req.gio_vao_hien_tai.substring(0,5) : '--:--'}
+                        <strong>Giờ vào:</strong> {req?.gio_vao_hien_tai ? req.gio_vao_hien_tai.substring(0,5) : '--:--'}
                       </Typography>
                       <Typography variant="caption">
-                        <strong>Giờ đề xuất:</strong> {req.thoi_gian_de_xuat?.substring(0,5)}
+                        <strong>Giờ đề xuất:</strong> {req?.thoi_gian_de_xuat?.substring(0,5)}
                       </Typography>
-                      {req.thoi_gian_dieu_chinh && (
+                      {req?.thoi_gian_dieu_chinh && (
                         <Typography variant="caption" color="success.main">
                           <strong>Đã điều chỉnh:</strong> {req.thoi_gian_dieu_chinh.substring(0,5)}
                         </Typography>
@@ -696,10 +697,10 @@ const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessReques
                     </Box>
 
                     <Typography variant="caption" sx={{ mb: 1 }}>
-                      <strong>Lý do:</strong> {req.ly_do || 'Không có lý do'}
+                      <strong>Lý do:</strong> {req?.ly_do || 'Không có lý do'}
                     </Typography>
 
-                    {req.ghi_chu_admin && (
+                    {req?.ghi_chu_admin && (
                       <Typography variant="caption" color="error.main" sx={{ mb: 1 }}>
                         <strong>Ghi chú admin:</strong> {req.ghi_chu_admin}
                       </Typography>
@@ -860,7 +861,7 @@ const DetailedAttendanceTable = ({
     );
   }
 
-  if (combinedTableData.length === 0) {
+  if (!combinedTableData || combinedTableData.length === 0) {
     return (
       <Alert severity="info" sx={{ borderRadius: 2, py: 1 }}>
         Không có dữ liệu chấm công trong tháng này
@@ -872,7 +873,7 @@ const DetailedAttendanceTable = ({
   selectedEmployees.forEach(empId => {
     let total = 0;
     combinedTableData.forEach(day => {
-      total += employeeHoursPerDay[day.date]?.[empId] || 0;
+      total += employeeHoursPerDay?.[day.date]?.[empId] || 0;
     });
     employeeMonthlyHours[empId] = total;
   });
@@ -1079,7 +1080,7 @@ const DetailedAttendanceTable = ({
                 </TableCell>
 
                 {selectedEmployees.map((id, idx) => {
-                  const hours = employeeHoursPerDay[row.date]?.[id] || 0;
+                  const hours = employeeHoursPerDay?.[row.date]?.[id] || 0;
                   const emp = employees.find(e => e.id === id);
                   const color = EMPLOYEE_COLORS[idx % EMPLOYEE_COLORS.length];
                   
@@ -1141,9 +1142,10 @@ const EmployeeList = ({
   onSearchChange,
   loading
 }) => {
-  const filteredEmployees = employees.filter(emp => 
-    emp.ten_nhan_vien.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.ma_nhan_vien.toLowerCase().includes(searchTerm.toLowerCase())
+  const safeEmployees = Array.isArray(employees) ? employees : [];
+  const filteredEmployees = safeEmployees.filter(emp => 
+    emp?.ten_nhan_vien?.toLowerCase().includes(searchTerm?.toLowerCase() || '') ||
+    emp?.ma_nhan_vien?.toLowerCase().includes(searchTerm?.toLowerCase() || '')
   );
 
   return (
@@ -1154,7 +1156,7 @@ const EmployeeList = ({
             👥 DANH SÁCH NHÂN VIÊN
           </Typography>
           <Chip 
-            label={`${selectedEmployees.length}/${employees.length}`}
+            label={`${selectedEmployees?.length || 0}/${safeEmployees.length}`}
             size="small"
             sx={{ bgcolor: 'white', color: '#1976d2', fontWeight: 'bold', height: 22, '& .MuiChip-label': { fontSize: '0.75rem', px: 1 } }}
           />
@@ -1164,7 +1166,7 @@ const EmployeeList = ({
           fullWidth
           size="small"
           placeholder="Tìm kiếm nhân viên..."
-          value={searchTerm}
+          value={searchTerm || ''}
           onChange={(e) => onSearchChange(e.target.value)}
           sx={{ 
             mt: 1.5,
@@ -1191,8 +1193,8 @@ const EmployeeList = ({
           control={
             <Checkbox
               size="small"
-              checked={selectedEmployees.length === employees.length && employees.length > 0}
-              indeterminate={selectedEmployees.length > 0 && selectedEmployees.length < employees.length}
+              checked={selectedEmployees?.length === safeEmployees.length && safeEmployees.length > 0}
+              indeterminate={selectedEmployees?.length > 0 && selectedEmployees?.length < safeEmployees.length}
               onChange={onSelectAll}
               sx={{ color: '#1976d2', '& .MuiSvgIcon-root': { fontSize: '1.3rem' } }}
             />
@@ -1213,7 +1215,7 @@ const EmployeeList = ({
         <List sx={{ maxHeight: 350, overflow: 'auto', p: 0 }}>
           {filteredEmployees.map(emp => (
             <ListItem 
-              key={emp.id} 
+              key={emp?.id} 
               disablePadding
               sx={{ 
                 borderBottom: '1px solid #f0f0f0',
@@ -1222,24 +1224,24 @@ const EmployeeList = ({
             >
               <ListItemButton 
                 sx={{ py: 1.2 }}
-                onClick={() => onEmployeeToggle(emp.id)}
+                onClick={() => onEmployeeToggle(emp?.id)}
               >
                 <Checkbox
                   size="small"
-                  checked={selectedEmployees.includes(emp.id)}
+                  checked={selectedEmployees?.includes(emp?.id)}
                   sx={{ mr: 0.5, '& .MuiSvgIcon-root': { fontSize: '1.3rem' } }}
                 />
                 <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
                     <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-                      {emp.ten_nhan_vien}
+                      {emp?.ten_nhan_vien}
                     </Typography>
                     <Typography variant="caption" sx={{ color: '#1976d2', fontWeight: 'bold', fontSize: '0.7rem' }}>
                       ({getEmployeeAbbr(emp)})
                     </Typography>
                   </Box>
                   <Chip 
-                    label={emp.ma_nhan_vien}
+                    label={emp?.ma_nhan_vien}
                     size="small"
                     variant="outlined"
                     sx={{ 
@@ -1346,19 +1348,49 @@ const AdminHistory = () => {
     }
   };
 
-  // Fetch time adjustment requests
+  // Fetch time adjustment requests (ĐÃ SỬA: xử lý lỗi chi tiết)
   const fetchTimeAdjustmentRequests = async () => {
     if (!auth?.token || !auth?.employee?.is_admin) return;
     
     setLoadingRequests(true);
     try {
       const response = await axios.get('https://backendchamcong-production.up.railway.app/api/attendance/admin/pending-time-adjustments', {
-        headers: { Authorization: `Bearer ${auth.token}` }
+        headers: { Authorization: `Bearer ${auth.token}` },
+        timeout: 10000 // 10 giây timeout
       });
-      setTimeAdjustmentRequests(response.data);
+      // Đảm bảo response.data là array
+      setTimeAdjustmentRequests(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
-      console.error('Lỗi tải yêu cầu điều chỉnh:', err);
-      showSnackbar('Không thể tải yêu cầu điều chỉnh', 'error');
+      console.error('Chi tiết lỗi fetchTimeAdjustmentRequests:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        config: err.config
+      });
+      
+      // Xử lý các loại lỗi khác nhau
+      if (err.code === 'ECONNABORTED') {
+        showSnackbar('Kết nối đến server bị timeout', 'warning');
+      } else if (err.response) {
+        // Server có phản hồi với mã lỗi
+        if (err.response.status === 404) {
+          showSnackbar('API yêu cầu điều chỉnh chưa được cài đặt', 'warning');
+        } else if (err.response.status === 401) {
+          showSnackbar('Phiên đăng nhập hết hạn', 'error');
+        } else if (err.response.status === 403) {
+          showSnackbar('Bạn không có quyền truy cập', 'error');
+        } else {
+          showSnackbar(`Lỗi server: ${err.response.status}`, 'error');
+        }
+      } else if (err.request) {
+        // Không nhận được phản hồi
+        showSnackbar('Không thể kết nối đến server. Vui lòng thử lại sau.', 'error');
+      } else {
+        showSnackbar('Có lỗi xảy ra: ' + err.message, 'error');
+      }
+      
+      // Đặt mảng rỗng để tránh lỗi khi render
+      setTimeAdjustmentRequests([]);
     } finally {
       setLoadingRequests(false);
     }
@@ -1857,8 +1889,8 @@ const AdminHistory = () => {
     let totalHours = 0;
     let totalShifts = 0;
     
-    Object.values(allAttendanceData).forEach(employeeData => {
-      employeeData.forEach(day => {
+    Object.values(allAttendanceData || {}).forEach(employeeData => {
+      (employeeData || []).forEach(day => {
         totalHours += day.tong_gio || 0;
         
         if (day.ca1) totalShifts++;
@@ -1928,7 +1960,15 @@ const AdminHistory = () => {
           }}
         >
           <Tab 
-            icon={<Badge badgeContent={timeAdjustmentRequests.filter(r => r.trang_thai === 'pending').length} color="error" sx={{ '& .MuiBadge-badge': { right: -5, top: 5 } }}><WorkIcon /></Badge>}
+            icon={
+              <Badge 
+                badgeContent={(timeAdjustmentRequests || []).filter(r => r?.trang_thai === 'pending').length} 
+                color="error" 
+                sx={{ '& .MuiBadge-badge': { right: -5, top: 5 } }}
+              >
+                <WorkIcon />
+              </Badge>
+            }
             iconPosition="start"
             label="Bảng chấm công tổng hợp" 
           />
@@ -1942,13 +1982,13 @@ const AdminHistory = () => {
         <StatisticsCards 
           totals={calculateTotals()} 
           stats={stats} 
-          pendingRequests={timeAdjustmentRequests.filter(r => r.trang_thai === 'pending').length}
-          requests={timeAdjustmentRequests}
+          pendingRequests={(timeAdjustmentRequests || []).filter(r => r?.trang_thai === 'pending').length}
+          requests={timeAdjustmentRequests} // Đã đảm bảo là array
           onProcessRequest={handleProcessTimeAdjustment}
           loadingRequests={loadingRequests}
         />
 
-        {/* Layout 2 CỘT (đã bỏ cột giữa) */}
+        {/* Layout 2 CỘT */}
         <Grid container spacing={2} alignItems="stretch">
           
           {/* CỘT TRÁI - DANH SÁCH NHÂN VIÊN */}
@@ -2403,7 +2443,7 @@ const AdminHistory = () => {
             Lịch sử chấm công tháng {selectedMonth}/{selectedYear}
           </Typography>
           
-          {userDetailDialog.schedule.length === 0 ? (
+          {!userDetailDialog.schedule || userDetailDialog.schedule.length === 0 ? (
             <Alert severity="info" sx={{ fontSize: '0.9rem' }}>
               Không có dữ liệu chấm công trong tháng này
             </Alert>
