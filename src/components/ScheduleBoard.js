@@ -212,21 +212,21 @@ const canRegister = (date, shiftKey) => {
   const shift = SHIFTS.find(s => s.key === shiftKey);
   if (!shift) return { canRegister: false, reason: 'Ca không hợp lệ' };
   
-  const shiftStart = shift.start;
+  const shiftEnd = shift.end;
   
-  // Nếu đăng ký ngày hôm nay và đã qua giờ bắt đầu ca
-  if (date === currentDate && currentTime > shiftStart) {
-    return {
-      canRegister: false,
-      reason: `Không thể đăng ký ca này vì đã quá giờ bắt đầu (${shiftStart})`
-    };
-  }
-  
-  // Nếu đăng ký ngày trong quá khứ
+  // Không cho đăng ký ngày trong quá khứ
   if (date < currentDate) {
     return {
       canRegister: false,
       reason: 'Không thể đăng ký ca ngày đã qua'
+    };
+  }
+  
+  // Nếu là hôm nay, chỉ chặn khi đã quá giờ kết thúc
+  if (date === currentDate && currentTime > shiftEnd) {
+    return {
+      canRegister: false,
+      reason: `Không thể đăng ký ca này vì ca đã kết thúc lúc ${shiftEnd}`
     };
   }
   
