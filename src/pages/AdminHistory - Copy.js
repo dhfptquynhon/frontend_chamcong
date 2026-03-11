@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   Box,
   Typography,
@@ -74,8 +74,7 @@ import {
   Add as AddIcon,
   Delete as DeleteIcon,
   VpnKey as VpnKeyIcon,
-  AdminPanelSettings as AdminPanelSettingsIcon,
-  SwapHoriz as SwapHorizIcon
+  AdminPanelSettings as AdminPanelSettingsIcon
 } from '@mui/icons-material';
 import AuthContext from '../context/AuthContext';
 import axios from 'axios';
@@ -395,384 +394,94 @@ const exportChamCongExcel = (
 };
 
 // =======================
-// TrucThay Requests Compact Component (Cập nhật)
+// Statistics Cards Component (ĐÃ SỬA: kiểm tra requests là array)
 // =======================
-const TrucThayRequestsCompact = ({ 
-  requests, 
-  pendingCount, 
-  onProcessRequest, 
-  loading,
-  month,
-  year,
-  fetchAllTrucThay
-}) => {
-  const [openDialog, setOpenDialog] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState(null);
-  const [processDialog, setProcessDialog] = useState({ open: false, approve: true });
-  const [allRecords, setAllRecords] = useState([]);
-  const [loadingAll, setLoadingAll] = useState(false);
-  const [tabValue, setTabValue] = useState(0); // 0: chờ duyệt, 1: lịch sử
+const StatisticsCards = ({ totals, stats, pendingRequests, requests, onProcessRequest, loadingRequests }) => {
+  const totalRegistered = Object.values(stats || {}).reduce((sum, stat) => sum + (stat?.total_registered || 0), 0);
+  const totalCompleted = Object.values(stats || {}).reduce((sum, stat) => sum + (stat?.total_completed || 0), 0);
 
-  // Đảm bảo requests là array
-  const safeRequests = Array.isArray(requests) ? requests : [];
-  const safePendingCount = typeof pendingCount === 'number' ? pendingCount : 0;
-
-  const getStatusChip = (status) => {
-    switch(status) {
-      case 'pending':
-        return <Chip size="small" icon={<PendingIcon />} label="Chờ duyệt" color="warning" sx={{ height: 22, '& .MuiChip-icon': { fontSize: '0.8rem' } }} />;
-      case 'active':
-        return <Chip size="small" icon={<CheckCircleIcon />} label="Đã duyệt" color="success" sx={{ height: 22, '& .MuiChip-icon': { fontSize: '0.8rem' } }} />;
-      case 'completed':
-        return <Chip size="small" icon={<CheckCircleIcon />} label="Hoàn thành" color="info" sx={{ height: 22, '& .MuiChip-icon': { fontSize: '0.8rem' } }} />;
-      case 'rejected':
-        return <Chip size="small" icon={<CancelIcon />} label="Từ chối" color="error" sx={{ height: 22, '& .MuiChip-icon': { fontSize: '0.8rem' } }} />;
-      default:
-        return <Chip size="small" label={status} />;
+  const cards = [
+    {
+      title: 'Tổng ca đăng ký',
+      value: totalRegistered,
+      icon: <WorkIcon />,
+      color: '#1976d2',
+      bgColor: alpha('#1976d2', 0.1)
+    },
+    {
+      title: 'Tổng ca hoàn thành',
+      value: totalCompleted,
+      icon: <HowToRegIcon />,
+      color: '#2e7d32',
+      bgColor: alpha('#2e7d32', 0.1)
+    },
+    {
+      title: 'Tổng giờ làm',
+      value: `${totals?.totalHours || '0'}h`,
+      icon: <AccessTimeIcon />,
+      color: '#ed6c02',
+      bgColor: alpha('#ed6c02', 0.1)
     }
-  };
-
-  const handleOpenProcessDialog = (request, approve) => {
-    setSelectedRequest(request);
-    setProcessDialog({ open: true, approve });
-  };
-
-  const handleProcess = () => {
-    if (!selectedRequest) return;
-    onProcessRequest(selectedRequest.id, processDialog.approve);
-    setProcessDialog({ open: false, approve: true });
-    setSelectedRequest(null);
-    // Sau khi xử lý, đóng dialog chi tiết và refresh lại danh sách
-    setOpenDialog(false);
-  };
-
-  // Khi dialog mở, fetch tất cả lịch sử
-  useEffect(() => {
-    if (openDialog && fetchAllTrucThay) {
-      setLoadingAll(true);
-      fetchAllTrucThay(month, year)
-        .then(data => setAllRecords(Array.isArray(data) ? data : []))
-        .catch(err => {
-          console.error('Lỗi tải lịch sử trực thay:', err);
-          setAllRecords([]);
-        })
-        .finally(() => setLoadingAll(false));
-    }
-  }, [openDialog, month, year, fetchAllTrucThay]);
-
-  const recentRequests = safeRequests.slice(0, 3);
+  ];
 
   return (
-    <>
-      <Card 
-        sx={{ 
-          borderRadius: 2,
-          boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
-          position: 'relative',
-          overflow: 'visible',
-          transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-          cursor: 'pointer',
-          height: '100%',
-          '&:hover': {
-            transform: 'translateY(-2px)',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-          }
-        }}
-        onClick={() => setOpenDialog(true)}
-      >
-        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Avatar sx={{ 
-              bgcolor: alpha('#ff9800', 0.1),
-              color: '#ff9800',
-              width: 42,
-              height: 42
-            }}>
-              <SwapHorizIcon />
-            </Avatar>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="body2" color="text.secondary" fontWeight="medium" sx={{ fontSize: '0.8rem' }}>
-                Yêu cầu trực thay
-              </Typography>
-              <Typography variant="h6" fontWeight="bold" sx={{ color: '#ff9800', fontSize: '1.1rem' }}>
-                {safePendingCount}
-              </Typography>
-            </Box>
-          </Stack>
-
-          {safePendingCount > 0 && (
-            <Box sx={{ mt: 1.5 }}>
-              {recentRequests.map((req, index) => (
-                <Box 
-                  key={req?.id || index}
-                  sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    py: 0.5,
-                    borderBottom: index < recentRequests.length - 1 ? '1px solid #f0f0f0' : 'none'
-                  }}
-                >
-                  <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
-                    <strong>{req?.ten_nguoi_truc_thay || 'N/A'}</strong> → {req?.ten_nguoi_duoc_truc_thay || 'N/A'}
+    <Grid container spacing={2} sx={{ mb: 2.5 }}>
+      {cards.map((card, index) => (
+        <Grid item xs={12} sm={6} md={3} key={index}>
+          <Card sx={{ 
+            borderRadius: 2,
+            boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
+            position: 'relative',
+            overflow: 'visible',
+            transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+            '&:hover': {
+              transform: 'translateY(-2px)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            }
+          }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Stack direction="row" alignItems="center" spacing={1.5}>
+                <Avatar sx={{ 
+                  bgcolor: card.bgColor,
+                  color: card.color,
+                  width: 42,
+                  height: 42
+                }}>
+                  {card.icon}
+                </Avatar>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2" color="text.secondary" fontWeight="medium" sx={{ fontSize: '0.8rem' }}>
+                    {card.title}
                   </Typography>
-                  <Chip size="small" label="Chờ" color="warning" sx={{ height: 16, fontSize: '0.55rem' }} />
+                  <Typography variant="h6" fontWeight="bold" sx={{ color: card.color, fontSize: '1.1rem' }}>
+                    {card.value}
+                  </Typography>
                 </Box>
-              ))}
-              {safeRequests.length > 3 && (
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', display: 'block', textAlign: 'center', mt: 0.5 }}>
-                  +{safeRequests.length - 3} yêu cầu khác
-                </Typography>
-              )}
-            </Box>
-          )}
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+      ))}
 
-          {safePendingCount > 0 && (
-            <Badge
-              badgeContent={safePendingCount}
-              color="warning"
-              sx={{
-                position: 'absolute',
-                top: -8,
-                right: -8,
-                '& .MuiBadge-badge': {
-                  fontSize: '0.7rem',
-                  height: 20,
-                  minWidth: 20,
-                  fontWeight: 'bold'
-                }
-              }}
-            />
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Dialog chi tiết với tabs */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ bgcolor: '#ff9800', color: 'white', py: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <SwapHorizIcon />
-              <Typography variant="h6">QUẢN LÝ TRỰC THAY</Typography>
-            </Box>
-            <IconButton onClick={() => setOpenDialog(false)} sx={{ color: 'white' }}>
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-        
-        <DialogContent sx={{ p: 0 }}>
-          <Tabs 
-            value={tabValue} 
-            onChange={(e, v) => setTabValue(v)}
-            sx={{ 
-              borderBottom: '1px solid #e0e0e0',
-              '& .MuiTab-root': { fontWeight: 'bold', fontSize: '0.85rem' }
-            }}
-          >
-            <Tab label={`CHỜ DUYỆT (${safePendingCount})`} />
-            <Tab label="LỊCH SỬ TRỰC THAY" />
-          </Tabs>
-
-          {/* Tab 1: Danh sách chờ duyệt */}
-          {tabValue === 0 && (
-            <Box sx={{ maxHeight: 500, overflow: 'auto' }}>
-              {loading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                  <CircularProgress size={28} />
-                </Box>
-              ) : safeRequests.length === 0 ? (
-                <Box sx={{ p: 3, textAlign: 'center' }}>
-                  <SwapHorizIcon sx={{ fontSize: 40, color: '#e0e0e0', mb: 1 }} />
-                  <Typography variant="body2" color="text.secondary">Không có yêu cầu trực thay</Typography>
-                </Box>
-              ) : (
-                <List sx={{ p: 0 }}>
-                  {safeRequests.map((req) => {
-                    const isPending = req?.trang_thai === 'pending';
-                    return (
-                      <ListItem 
-                        key={req?.id || Math.random()}
-                        sx={{ 
-                          borderBottom: '1px solid #f0f0f0',
-                          bgcolor: isPending ? alpha('#ff9800', 0.05) : 'inherit',
-                          flexDirection: 'column',
-                          alignItems: 'stretch',
-                          py: 1.5
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                          <Box>
-                            <Typography variant="body2" fontWeight="bold">
-                              {req?.ten_nguoi_truc_thay || 'N/A'} ({req?.ma_nguoi_truc_thay || 'N/A'}) → {req?.ten_nguoi_duoc_truc_thay || 'N/A'} ({req?.ma_nguoi_duoc_truc_thay || 'N/A'})
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {req?.ngay ? new Date(req.ngay).toLocaleDateString('vi-VN') : 'N/A'} - 
-                              {req?.ca === 'ca1' ? ' Ca 1 (7:00-9:30)' :
-                               req?.ca === 'ca2' ? ' Ca 2 (9:30-12:30)' :
-                               req?.ca === 'ca3' ? ' Ca 3 (12:30-15:00)' : ' Ca 4 (15:00-17:30)'}
-                            </Typography>
-                          </Box>
-                          <Box>
-                            {getStatusChip(req?.trang_thai)}
-                          </Box>
-                        </Box>
-
-                        <Typography variant="caption" sx={{ mb: 1 }}>
-                          <strong>Lý do:</strong> {req?.ly_do || 'Không có lý do'}
-                        </Typography>
-
-                        {isPending && (
-                          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="success"
-                              startIcon={<CheckCircleIcon />}
-                              onClick={() => handleOpenProcessDialog(req, true)}
-                              sx={{ fontSize: '0.7rem', py: 0.3 }}
-                            >
-                              Duyệt
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              color="error"
-                              startIcon={<CancelIcon />}
-                              onClick={() => handleOpenProcessDialog(req, false)}
-                              sx={{ fontSize: '0.7rem', py: 0.3 }}
-                            >
-                              Từ chối
-                            </Button>
-                          </Box>
-                        )}
-                      </ListItem>
-                    );
-                  })}
-                </List>
-              )}
-            </Box>
-          )}
-
-          {/* Tab 2: Lịch sử trực thay (bảng) */}
-          {tabValue === 1 && (
-            <Box sx={{ maxHeight: 500, overflow: 'auto', p: 2 }}>
-              {loadingAll ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                  <CircularProgress size={28} />
-                </Box>
-              ) : allRecords.length === 0 ? (
-                <Box sx={{ p: 3, textAlign: 'center' }}>
-                  <HistoryIcon sx={{ fontSize: 40, color: '#e0e0e0', mb: 1 }} />
-                  <Typography variant="body2" color="text.secondary">Chưa có lịch sử trực thay</Typography>
-                </Box>
-              ) : (
-                <TableContainer component={Paper} sx={{ boxShadow: 'none' }}>
-                  <Table size="small" stickyHeader>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>STT</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>Người trực thay</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>Người được trực thay</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>Ngày</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>Ca</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>Lý do</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>Trạng thái</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>Thời gian tạo</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {allRecords.map((record, index) => (
-                        <TableRow key={record?.id || index} hover>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>{index + 1}</TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>
-                            <Tooltip title={record?.ma_nguoi_truc_thay || ''}>
-                              <span>{record?.ten_nguoi_truc_thay || 'N/A'}</span>
-                            </Tooltip>
-                          </TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>
-                            <Tooltip title={record?.ma_nguoi_duoc_truc_thay || ''}>
-                              <span>{record?.ten_nguoi_duoc_truc_thay || 'N/A'}</span>
-                            </Tooltip>
-                          </TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>{record?.ngay ? new Date(record.ngay).toLocaleDateString('vi-VN') : 'N/A'}</TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>
-                            {record?.ca === 'ca1' ? 'Ca 1' :
-                             record?.ca === 'ca2' ? 'Ca 2' :
-                             record?.ca === 'ca3' ? 'Ca 3' : 'Ca 4'}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem', maxWidth: 200 }}>
-                            <Tooltip title={record?.ly_do || ''}>
-                              <span style={{ 
-                                display: 'block',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis'
-                              }}>
-                                {record?.ly_do || '--'}
-                              </span>
-                            </Tooltip>
-                          </TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>
-                            {getStatusChip(record?.trang_thai)}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>
-                            {record?.created_at ? new Date(record.created_at).toLocaleString('vi-VN') : 'N/A'}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
-            </Box>
-          )}
-        </DialogContent>
-        
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setOpenDialog(false)} color="inherit">
-            Đóng
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Dialog xác nhận xử lý */}
-      <Dialog open={processDialog.open} onClose={() => setProcessDialog({ open: false, approve: true })} maxWidth="xs" fullWidth>
-        <DialogTitle>
-          {processDialog.approve ? 'Xác nhận duyệt yêu cầu' : 'Xác nhận từ chối'}
-        </DialogTitle>
-        <DialogContent>
-          <Typography>
-            {processDialog.approve 
-              ? 'Bạn có chắc chắn muốn duyệt yêu cầu trực thay này?' 
-              : 'Bạn có chắc chắn muốn từ chối yêu cầu trực thay này?'}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setProcessDialog({ open: false, approve: true })}>Hủy</Button>
-          <Button 
-            variant="contained" 
-            color={processDialog.approve ? "success" : "error"}
-            onClick={handleProcess}
-          >
-            Xác nhận
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </>
+      <Grid item xs={12} sm={6} md={3}>
+        <TimeAdjustmentRequestsCompact 
+          requests={requests} // Đã được kiểm tra trong component con
+          pendingCount={pendingRequests}
+          onProcessRequest={onProcessRequest}
+          loading={loadingRequests}
+        />
+      </Grid>
+    </Grid>
   );
 };
 
 // =======================
-// Time Adjustment Requests Compact Component (Cập nhật)
+// Time Adjustment Requests Compact Component (ĐÃ SỬA: kiểm tra requests là array)
 // =======================
-const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessRequest, loading, month, year, fetchAllTimeAdjustments }) => {
+const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessRequest, loading }) => {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [processDialog, setProcessDialog] = useState({ open: false, approve: true, adjustedTime: '', adminNote: '' });
-  const [allHistory, setAllHistory] = useState([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [tabValue, setTabValue] = useState(0); // 0: chờ duyệt, 1: lịch sử duyệt
 
   // Đảm bảo requests là array
   const safeRequests = Array.isArray(requests) ? requests : [];
@@ -816,25 +525,11 @@ const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessReques
     setOpenDialog(false);
   };
 
-  // Khi dialog mở, fetch tất cả lịch sử
-  useEffect(() => {
-    if (openDialog && fetchAllTimeAdjustments) {
-      setLoadingHistory(true);
-      fetchAllTimeAdjustments(month, year)
-        .then(data => setAllHistory(Array.isArray(data) ? data : []))
-        .catch(err => {
-          console.error('Lỗi tải lịch sử yêu cầu:', err);
-          setAllHistory([]);
-        })
-        .finally(() => setLoadingHistory(false));
-    }
-  }, [openDialog, month, year, fetchAllTimeAdjustments]);
-
   const getLoaiYeuCauText = (loai) => {
     return loai === 'checkin' ? 'Check-in' : 'Check-out';
   };
 
-  // Hiển thị 3 yêu cầu gần nhất trên thẻ
+  // Hiển thị 3 yêu cầu gần nhất
   const recentRequests = safeRequests.slice(0, 3);
 
   return (
@@ -875,7 +570,6 @@ const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessReques
             </Box>
           </Stack>
 
-          {/* Hiển thị 3 yêu cầu gần nhất */}
           {safePendingCount > 0 && (
             <Box sx={{ mt: 1.5 }}>
               {recentRequests.map((req, index) => (
@@ -928,13 +622,13 @@ const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessReques
         </CardContent>
       </Card>
 
-      {/* Dialog chi tiết với tabs */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="lg" fullWidth>
+      {/* Dialog chi tiết yêu cầu */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ bgcolor: '#f44336', color: 'white', py: 1.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <PendingIcon />
-              <Typography variant="h6">QUẢN LÝ YÊU CẦU ĐIỀU CHỈNH GIỜ</Typography>
+              <Typography variant="h6">YÊU CẦU ĐIỀU CHỈNH GIỜ ({safePendingCount} chờ duyệt)</Typography>
             </Box>
             <IconButton onClick={() => setOpenDialog(false)} sx={{ color: 'white' }}>
               <CloseIcon />
@@ -943,209 +637,103 @@ const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessReques
         </DialogTitle>
         
         <DialogContent sx={{ p: 0 }}>
-          <Tabs 
-            value={tabValue} 
-            onChange={(e, v) => setTabValue(v)}
-            sx={{ 
-              borderBottom: '1px solid #e0e0e0',
-              '& .MuiTab-root': { fontWeight: 'bold', fontSize: '0.85rem' }
-            }}
-          >
-            <Tab label={`CHỜ DUYỆT (${safePendingCount})`} />
-            <Tab label="LỊCH SỬ DUYỆT" />
-          </Tabs>
-
-          {/* Tab 1: Danh sách chờ duyệt */}
-          {tabValue === 0 && (
-            <Box sx={{ maxHeight: 500, overflow: 'auto' }}>
-              {loading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                  <CircularProgress size={28} />
-                </Box>
-              ) : safeRequests.length === 0 ? (
-                <Box sx={{ p: 3, textAlign: 'center' }}>
-                  <AccessTimeIcon sx={{ fontSize: 40, color: '#e0e0e0', mb: 1 }} />
-                  <Typography variant="body2" color="text.secondary">Không có yêu cầu điều chỉnh giờ</Typography>
-                </Box>
-              ) : (
-                <List sx={{ maxHeight: 500, overflow: 'auto', p: 0 }}>
-                  {safeRequests.map((req) => {
-                    const isPending = req?.trang_thai === 'pending';
-                    
-                    return (
-                      <ListItem 
-                        key={req?.id || Math.random()}
-                        sx={{ 
-                          borderBottom: '1px solid #f0f0f0',
-                          bgcolor: isPending ? alpha('#ff9800', 0.05) : 'inherit',
-                          flexDirection: 'column',
-                          alignItems: 'stretch',
-                          py: 1.5
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                          <Box>
-                            <Typography variant="body2" fontWeight="bold">
-                              {req?.ten_nhan_vien || 'N/A'} ({req?.ma_nhan_vien || 'N/A'})
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {req?.ngay ? new Date(req.ngay).toLocaleDateString('vi-VN') : 'N/A'} - 
-                              {req?.ca === 'ca1' ? ' Ca 1 (7:00-9:30)' :
-                               req?.ca === 'ca2' ? ' Ca 2 (9:30-12:30)' :
-                               req?.ca === 'ca3' ? ' Ca 3 (12:30-15:00)' : ' Ca 4 (15:00-17:30)'}
-                            </Typography>
-                          </Box>
-                          <Box>
-                            {getStatusChip(req?.trang_thai)}
-                          </Box>
-                        </Box>
-
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 1 }}>
-                          <Typography variant="caption">
-                            <strong>Loại:</strong> {getLoaiYeuCauText(req?.loai_yeu_cau)}
-                          </Typography>
-                          <Typography variant="caption">
-                            <strong>Giờ vào:</strong> {req?.gio_vao_hien_tai ? req.gio_vao_hien_tai.substring(0,5) : '--:--'}
-                          </Typography>
-                          <Typography variant="caption">
-                            <strong>Giờ đề xuất:</strong> {req?.thoi_gian_de_xuat?.substring(0,5)}
-                          </Typography>
-                          {req?.thoi_gian_dieu_chinh && (
-                            <Typography variant="caption" color="success.main">
-                              <strong>Đã điều chỉnh:</strong> {req.thoi_gian_dieu_chinh.substring(0,5)}
-                            </Typography>
-                          )}
-                        </Box>
-
-                        <Typography variant="caption" sx={{ mb: 1 }}>
-                          <strong>Lý do:</strong> {req?.ly_do || 'Không có lý do'}
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : safeRequests.length === 0 ? (
+            <Box sx={{ p: 3, textAlign: 'center' }}>
+              <AccessTimeIcon sx={{ fontSize: 40, color: '#e0e0e0', mb: 1 }} />
+              <Typography variant="body2" color="text.secondary">Không có yêu cầu điều chỉnh giờ</Typography>
+            </Box>
+          ) : (
+            <List sx={{ maxHeight: 500, overflow: 'auto', p: 0 }}>
+              {safeRequests.map((req) => {
+                const isPending = req?.trang_thai === 'pending';
+                
+                return (
+                  <ListItem 
+                    key={req?.id || Math.random()}
+                    sx={{ 
+                      borderBottom: '1px solid #f0f0f0',
+                      bgcolor: isPending ? alpha('#ff9800', 0.05) : 'inherit',
+                      flexDirection: 'column',
+                      alignItems: 'stretch',
+                      py: 1.5
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                      <Box>
+                        <Typography variant="body2" fontWeight="bold">
+                          {req?.ten_nhan_vien || 'N/A'} ({req?.ma_nhan_vien || 'N/A'})
                         </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {req?.ngay ? new Date(req.ngay).toLocaleDateString('vi-VN') : 'N/A'} - 
+                          {req?.ca === 'ca1' ? ' Ca 1 (7:00-9:30)' :
+                           req?.ca === 'ca2' ? ' Ca 2 (9:30-12:30)' :
+                           req?.ca === 'ca3' ? ' Ca 3 (12:30-15:00)' : ' Ca 4 (15:00-17:30)'}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        {getStatusChip(req?.trang_thai)}
+                      </Box>
+                    </Box>
 
-                        {req?.ghi_chu_admin && (
-                          <Typography variant="caption" color="error.main" sx={{ mb: 1 }}>
-                            <strong>Ghi chú admin:</strong> {req.ghi_chu_admin}
-                          </Typography>
-                        )}
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 1 }}>
+                      <Typography variant="caption">
+                        <strong>Loại:</strong> {getLoaiYeuCauText(req?.loai_yeu_cau)}
+                      </Typography>
+                      <Typography variant="caption">
+                        <strong>Giờ vào:</strong> {req?.gio_vao_hien_tai ? req.gio_vao_hien_tai.substring(0,5) : '--:--'}
+                      </Typography>
+                      <Typography variant="caption">
+                        <strong>Giờ đề xuất:</strong> {req?.thoi_gian_de_xuat?.substring(0,5)}
+                      </Typography>
+                      {req?.thoi_gian_dieu_chinh && (
+                        <Typography variant="caption" color="success.main">
+                          <strong>Đã điều chỉnh:</strong> {req.thoi_gian_dieu_chinh.substring(0,5)}
+                        </Typography>
+                      )}
+                    </Box>
 
-                        {isPending && (
-                          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="success"
-                              startIcon={<CheckCircleIcon />}
-                              onClick={() => handleOpenProcessDialog(req, true)}
-                              sx={{ fontSize: '0.7rem', py: 0.3 }}
-                            >
-                              Duyệt
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              color="error"
-                              startIcon={<CancelIcon />}
-                              onClick={() => handleOpenProcessDialog(req, false)}
-                              sx={{ fontSize: '0.7rem', py: 0.3 }}
-                            >
-                              Từ chối
-                            </Button>
-                          </Box>
-                        )}
-                      </ListItem>
-                    );
-                  })}
-                </List>
-              )}
-            </Box>
-          )}
+                    <Typography variant="caption" sx={{ mb: 1 }}>
+                      <strong>Lý do:</strong> {req?.ly_do || 'Không có lý do'}
+                    </Typography>
 
-          {/* Tab 2: Lịch sử duyệt (bảng) */}
-          {tabValue === 1 && (
-            <Box sx={{ maxHeight: 500, overflow: 'auto', p: 2 }}>
-              {loadingHistory ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                  <CircularProgress size={28} />
-                </Box>
-              ) : allHistory.length === 0 ? (
-                <Box sx={{ p: 3, textAlign: 'center' }}>
-                  <HistoryIcon sx={{ fontSize: 40, color: '#e0e0e0', mb: 1 }} />
-                  <Typography variant="body2" color="text.secondary">Chưa có lịch sử duyệt</Typography>
-                </Box>
-              ) : (
-                <TableContainer component={Paper} sx={{ boxShadow: 'none' }}>
-                  <Table size="small" stickyHeader>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>STT</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>Nhân viên</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>Loại</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>Ngày</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>Ca</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>Giờ đề xuất</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>Giờ điều chỉnh</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>Lý do</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>Ghi chú admin</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>Trạng thái</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', fontSize: '0.75rem' }}>Thời gian xử lý</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {allHistory.map((record, index) => (
-                        <TableRow key={record?.id || index} hover>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>{index + 1}</TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>
-                            <Tooltip title={record?.ma_nhan_vien || ''}>
-                              <span>{record?.ten_nhan_vien || 'N/A'}</span>
-                            </Tooltip>
-                          </TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>{record?.loai_yeu_cau === 'checkin' ? 'Check-in' : 'Check-out'}</TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>{record?.ngay ? new Date(record.ngay).toLocaleDateString('vi-VN') : 'N/A'}</TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>
-                            {record?.ca === 'ca1' ? 'Ca 1' :
-                             record?.ca === 'ca2' ? 'Ca 2' :
-                             record?.ca === 'ca3' ? 'Ca 3' : 'Ca 4'}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>{record?.thoi_gian_de_xuat?.substring(0,5)}</TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem', color: record?.thoi_gian_dieu_chinh ? 'success.main' : 'inherit' }}>
-                            {record?.thoi_gian_dieu_chinh?.substring(0,5) || '--:--'}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem', maxWidth: 150 }}>
-                            <Tooltip title={record?.ly_do || ''}>
-                              <span style={{ 
-                                display: 'block',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis'
-                              }}>
-                                {record?.ly_do || '--'}
-                              </span>
-                            </Tooltip>
-                          </TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem', maxWidth: 150 }}>
-                            <Tooltip title={record?.ghi_chu_admin || ''}>
-                              <span style={{ 
-                                display: 'block',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis'
-                              }}>
-                                {record?.ghi_chu_admin || '--'}
-                              </span>
-                            </Tooltip>
-                          </TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>
-                            {getStatusChip(record?.trang_thai)}
-                          </TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem' }}>
-                            {record?.updated_at ? new Date(record.updated_at).toLocaleString('vi-VN') : (record?.created_at ? new Date(record.created_at).toLocaleString('vi-VN') : 'N/A')}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
-            </Box>
+                    {req?.ghi_chu_admin && (
+                      <Typography variant="caption" color="error.main" sx={{ mb: 1 }}>
+                        <strong>Ghi chú admin:</strong> {req.ghi_chu_admin}
+                      </Typography>
+                    )}
+
+                    {isPending && (
+                      <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="success"
+                          startIcon={<CheckCircleIcon />}
+                          onClick={() => handleOpenProcessDialog(req, true)}
+                          sx={{ fontSize: '0.7rem', py: 0.3 }}
+                        >
+                          Duyệt
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          startIcon={<CancelIcon />}
+                          onClick={() => handleOpenProcessDialog(req, false)}
+                          sx={{ fontSize: '0.7rem', py: 0.3 }}
+                        >
+                          Từ chối
+                        </Button>
+                      </Box>
+                    )}
+                  </ListItem>
+                );
+              })}
+            </List>
           )}
         </DialogContent>
         
@@ -1256,122 +844,7 @@ const TimeAdjustmentRequestsCompact = ({ requests, pendingCount, onProcessReques
 };
 
 // =======================
-// Statistics Cards Component (Cập nhật)
-// =======================
-const StatisticsCards = ({ 
-  totals, 
-  stats, 
-  pendingRequests, 
-  requests, 
-  onProcessRequest, 
-  loadingRequests, 
-  pendingTrucThay, 
-  trucThayRequests, 
-  onProcessTrucThay, 
-  loadingTrucThay, 
-  month, 
-  year, 
-  fetchAllTrucThay,
-  fetchAllTimeAdjustments
-}) => {
-  const totalRegistered = Object.values(stats || {}).reduce((sum, stat) => sum + (stat?.total_registered || 0), 0);
-  const totalCompleted = Object.values(stats || {}).reduce((sum, stat) => sum + (stat?.total_completed || 0), 0);
-
-  const cards = [
-    {
-      title: 'Tổng ca đăng ký',
-      value: totalRegistered,
-      icon: <WorkIcon />,
-      color: '#1976d2',
-      bgColor: alpha('#1976d2', 0.1)
-    },
-    {
-      title: 'Tổng ca hoàn thành',
-      value: totalCompleted,
-      icon: <HowToRegIcon />,
-      color: '#2e7d32',
-      bgColor: alpha('#2e7d32', 0.1)
-    },
-    {
-      title: 'Tổng giờ làm',
-      value: `${totals?.totalHours || '0'}h`,
-      icon: <AccessTimeIcon />,
-      color: '#ed6c02',
-      bgColor: alpha('#ed6c02', 0.1)
-    }
-  ];
-
-  return (
-    <Grid container spacing={2} sx={{ mb: 2.5 }}>
-      {/* 3 thẻ thống kê */}
-      {cards.map((card, index) => (
-        <Grid item xs={12} sm={6} md={2.4} key={index}>
-          <Card sx={{ 
-            borderRadius: 2,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
-            position: 'relative',
-            overflow: 'visible',
-            transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-            '&:hover': {
-              transform: 'translateY(-2px)',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-            }
-          }}>
-            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-              <Stack direction="row" alignItems="center" spacing={1.5}>
-                <Avatar sx={{ 
-                  bgcolor: card.bgColor,
-                  color: card.color,
-                  width: 42,
-                  height: 42
-                }}>
-                  {card.icon}
-                </Avatar>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="body2" color="text.secondary" fontWeight="medium" sx={{ fontSize: '0.8rem' }}>
-                    {card.title}
-                  </Typography>
-                  <Typography variant="h6" fontWeight="bold" sx={{ color: card.color, fontSize: '1.1rem' }}>
-                    {card.value}
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      ))}
-
-      {/* Thẻ Yêu cầu điều chỉnh giờ */}
-      <Grid item xs={12} sm={6} md={2.4}>
-        <TimeAdjustmentRequestsCompact 
-          requests={requests}
-          pendingCount={pendingRequests}
-          onProcessRequest={onProcessRequest}
-          loading={loadingRequests}
-          month={month}
-          year={year}
-          fetchAllTimeAdjustments={fetchAllTimeAdjustments}
-        />
-      </Grid>
-
-      {/* Thẻ Yêu cầu trực thay */}
-      <Grid item xs={12} sm={6} md={2.4}>
-        <TrucThayRequestsCompact 
-          requests={trucThayRequests}
-          pendingCount={pendingTrucThay}
-          onProcessRequest={onProcessTrucThay}
-          loading={loadingTrucThay}
-          month={month}               
-          year={year}                 
-          fetchAllTrucThay={fetchAllTrucThay}
-        />
-      </Grid>
-    </Grid>
-  );
-};
-
-// =======================
-// Detailed Attendance Table Component (CẬP NHẬT)
+// Detailed Attendance Table Component
 // =======================
 const DetailedAttendanceTable = ({ 
   combinedTableData, 
@@ -1404,42 +877,6 @@ const DetailedAttendanceTable = ({
     });
     employeeMonthlyHours[empId] = total;
   });
-
-  // Hàm xử lý hiển thị chip cho từng ca
-  const renderShiftChips = (shiftData) => {
-    if (!shiftData || shiftData.length === 0) {
-      return <Typography variant="body2" color="text.disabled" sx={{ fontSize: '0.7rem' }}>-</Typography>;
-    }
-
-    return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
-        {shiftData.map((item, idx) => {
-          // Kiểm tra xem item có phải là object có thông tin trực thay không
-          const isObject = typeof item === 'object' && item !== null;
-          const name = isObject ? item.name : item;
-          const isTrucThay = isObject ? item.isTrucThay : false;
-          const tooltip = isObject ? item.tooltip : name;
-
-          return (
-            <Tooltip key={idx} title={tooltip} arrow>
-              <Chip 
-                label={name}
-                size="small"
-                sx={{ 
-                  height: 18, 
-                  fontSize: '0.65rem',
-                  backgroundColor: isTrucThay ? alpha('#ff9800', 0.15) : alpha('#1976d2', 0.1),
-                  fontWeight: isTrucThay ? 'bold' : 'normal',
-                  color: isTrucThay ? '#e65100' : 'inherit',
-                  '& .MuiChip-label': { px: 0.8 }
-                }}
-              />
-            </Tooltip>
-          );
-        })}
-      </Box>
-    );
-  };
 
   return (
     <TableContainer 
@@ -1558,16 +995,88 @@ const DetailedAttendanceTable = ({
                 </TableCell>
                 
                 <TableCell align="center" sx={{ py: 0.75 }}>
-                  {renderShiftChips(row.ca1_details || row.ca1)}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
+                    {row.ca1 && row.ca1.length > 0 ? (
+                      row.ca1.map((name, idx) => (
+                        <Chip 
+                          key={idx}
+                          label={name}
+                          size="small"
+                          sx={{ 
+                            height: 18, 
+                            fontSize: '0.65rem',
+                            backgroundColor: alpha('#1976d2', 0.1),
+                            '& .MuiChip-label': { px: 0.8 }
+                          }}
+                        />
+                      ))
+                    ) : (
+                      <Typography variant="body2" color="text.disabled" sx={{ fontSize: '0.7rem' }}>-</Typography>
+                    )}
+                  </Box>
                 </TableCell>
                 <TableCell align="center" sx={{ py: 0.75 }}>
-                  {renderShiftChips(row.ca2_details || row.ca2)}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
+                    {row.ca2 && row.ca2.length > 0 ? (
+                      row.ca2.map((name, idx) => (
+                        <Chip 
+                          key={idx}
+                          label={name}
+                          size="small"
+                          sx={{ 
+                            height: 18, 
+                            fontSize: '0.65rem',
+                            backgroundColor: alpha('#1976d2', 0.1),
+                            '& .MuiChip-label': { px: 0.8 }
+                          }}
+                        />
+                      ))
+                    ) : (
+                      <Typography variant="body2" color="text.disabled" sx={{ fontSize: '0.7rem' }}>-</Typography>
+                    )}
+                  </Box>
                 </TableCell>
                 <TableCell align="center" sx={{ py: 0.75 }}>
-                  {renderShiftChips(row.ca3_details || row.ca3)}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
+                    {row.ca3 && row.ca3.length > 0 ? (
+                      row.ca3.map((name, idx) => (
+                        <Chip 
+                          key={idx}
+                          label={name}
+                          size="small"
+                          sx={{ 
+                            height: 18, 
+                            fontSize: '0.65rem',
+                            backgroundColor: alpha('#1976d2', 0.1),
+                            '& .MuiChip-label': { px: 0.8 }
+                          }}
+                        />
+                      ))
+                    ) : (
+                      <Typography variant="body2" color="text.disabled" sx={{ fontSize: '0.7rem' }}>-</Typography>
+                    )}
+                  </Box>
                 </TableCell>
                 <TableCell align="center" sx={{ py: 0.75 }}>
-                  {renderShiftChips(row.ca4_details || row.ca4)}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
+                    {row.ca4 && row.ca4.length > 0 ? (
+                      row.ca4.map((name, idx) => (
+                        <Chip 
+                          key={idx}
+                          label={name}
+                          size="small"
+                          sx={{ 
+                            height: 18, 
+                            fontSize: '0.65rem',
+                            backgroundColor: alpha('#1976d2', 0.1),
+                            '& .MuiChip-label': { px: 0.8 }
+                          }}
+                        />
+                      ))
+                    ) : (
+                      <Typography variant="body2" color="text.disabled" sx={{ fontSize: '0.7rem' }}>-</Typography>
+                    )}
+                  </Box>
                 </TableCell>
 
                 {selectedEmployees.map((id, idx) => {
@@ -1793,11 +1302,6 @@ const AdminHistory = () => {
   // State cho yêu cầu điều chỉnh giờ
   const [timeAdjustmentRequests, setTimeAdjustmentRequests] = useState([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
-
-  // State cho yêu cầu trực thay
-  const [trucThayRequests, setTrucThayRequests] = useState([]);
-  const [loadingTrucThay, setLoadingTrucThay] = useState(false);
-
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   // ======================
@@ -1844,35 +1348,7 @@ const AdminHistory = () => {
     }
   };
 
-  // Hàm lấy tất cả lịch sử trực thay
-  const fetchAllTrucThay = useCallback(async (month, year) => {
-    try {
-      const res = await axios.get('https://backendchamcong-production.up.railway.app/api/attendance/admin/tructhay/all', {
-        params: { month, year },
-        headers: { Authorization: `Bearer ${auth.token}` }
-      });
-      return res.data;
-    } catch (err) {
-      console.error('Lỗi tải lịch sử trực thay:', err);
-      return [];
-    }
-  }, [auth.token]);
-
-  // Hàm lấy tất cả lịch sử yêu cầu điều chỉnh
-  const fetchAllTimeAdjustments = useCallback(async (month, year) => {
-    try {
-      const res = await axios.get('https://backendchamcong-production.up.railway.app/api/attendance/admin/time-adjustments/all', {
-        params: { month, year },
-        headers: { Authorization: `Bearer ${auth.token}` }
-      });
-      return res.data;
-    } catch (err) {
-      console.error('Lỗi tải lịch sử yêu cầu điều chỉnh:', err);
-      return [];
-    }
-  }, [auth.token]);
-
-  // Fetch time adjustment requests
+  // Fetch time adjustment requests (ĐÃ SỬA: xử lý lỗi chi tiết)
   const fetchTimeAdjustmentRequests = async () => {
     if (!auth?.token || !auth?.employee?.is_admin) return;
     
@@ -1882,12 +1358,21 @@ const AdminHistory = () => {
         headers: { Authorization: `Bearer ${auth.token}` },
         timeout: 10000 // 10 giây timeout
       });
+      // Đảm bảo response.data là array
       setTimeAdjustmentRequests(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
-      console.error('Lỗi tải yêu cầu điều chỉnh:', err);
+      console.error('Chi tiết lỗi fetchTimeAdjustmentRequests:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        config: err.config
+      });
+      
+      // Xử lý các loại lỗi khác nhau
       if (err.code === 'ECONNABORTED') {
         showSnackbar('Kết nối đến server bị timeout', 'warning');
       } else if (err.response) {
+        // Server có phản hồi với mã lỗi
         if (err.response.status === 404) {
           showSnackbar('API yêu cầu điều chỉnh chưa được cài đặt', 'warning');
         } else if (err.response.status === 401) {
@@ -1898,43 +1383,16 @@ const AdminHistory = () => {
           showSnackbar(`Lỗi server: ${err.response.status}`, 'error');
         }
       } else if (err.request) {
+        // Không nhận được phản hồi
         showSnackbar('Không thể kết nối đến server. Vui lòng thử lại sau.', 'error');
       } else {
         showSnackbar('Có lỗi xảy ra: ' + err.message, 'error');
       }
+      
+      // Đặt mảng rỗng để tránh lỗi khi render
       setTimeAdjustmentRequests([]);
     } finally {
       setLoadingRequests(false);
-    }
-  };
-
-  // Fetch truc thay requests
-  const fetchTrucThayRequests = async () => {
-    if (!auth?.token || !auth?.employee?.is_admin) return;
-    
-    setLoadingTrucThay(true);
-    try {
-      const res = await axios.get('https://backendchamcong-production.up.railway.app/api/attendance/admin/pending-tructhay', {
-        headers: { Authorization: `Bearer ${auth.token}` },
-        timeout: 10000
-      });
-      setTrucThayRequests(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error('Lỗi tải yêu cầu trực thay:', err);
-      if (err.code === 'ECONNABORTED') {
-        showSnackbar('Kết nối đến server bị timeout', 'warning');
-      } else if (err.response) {
-        if (err.response.status === 404) {
-          showSnackbar('API yêu cầu trực thay chưa được cài đặt', 'warning');
-        } else {
-          showSnackbar('Không thể tải yêu cầu trực thay', 'error');
-        }
-      } else {
-        showSnackbar('Không thể tải yêu cầu trực thay', 'error');
-      }
-      setTrucThayRequests([]);
-    } finally {
-      setLoadingTrucThay(false);
     }
   };
 
@@ -1962,27 +1420,10 @@ const AdminHistory = () => {
       
     } catch (err) {
       console.error('Lỗi xử lý yêu cầu:', err);
+      console.error('Chi tiết lỗi:', err.response?.data);
       showSnackbar(err.response?.data?.message || 'Xử lý yêu cầu thất bại', 'error');
     } finally {
       setLoadingRequests(false);
-    }
-  };
-
-  // Process truc thay request
-  const handleProcessTrucThay = async (requestId, approve) => {
-    try {
-      setLoadingTrucThay(true);
-      const res = await axios.post(
-        `https://backendchamcong-production.up.railway.app/api/attendance/admin/tructhay/${requestId}/approve`,
-        { approve },
-        { headers: { Authorization: `Bearer ${auth.token}` } }
-      );
-      showSnackbar(res.data.message, 'success');
-      await Promise.all([fetchTrucThayRequests(), fetchAllAttendance()]); // Refresh
-    } catch (err) {
-      showSnackbar(err.response?.data?.message || 'Xử lý thất bại', 'error');
-    } finally {
-      setLoadingTrucThay(false);
     }
   };
 
@@ -2017,7 +1458,6 @@ const AdminHistory = () => {
     
     fetchEmployees();
     fetchTimeAdjustmentRequests(); // Load yêu cầu điều chỉnh
-    fetchTrucThayRequests(); // Load yêu cầu trực thay
   }, [auth.token, auth?.employee?.is_admin]);
 
   // Fetch registered users
@@ -2148,59 +1588,37 @@ const AdminHistory = () => {
           tong_gio: 0,
           employeeName: employee.ten_nhan_vien,
           employeeId: employee.id,
-          employeeHours: {},
-          // Thêm thông tin trực thay chi tiết cho từng ca
-          ca1_details: [],
-          ca2_details: [],
-          ca3_details: [],
-          ca4_details: []
+          employeeHours: {}
         };
       }
       
       const employeeAbbr = getEmployeeAbbr(employee);
-      const ca = record.ca;
-      const hours = parseFloat(record.thoi_gian_lam) || 0;
+      switch(record.ca) {
+        case 'ca1':
+          groupedByDate[date].ca1 = true;
+          break;
+        case 'ca2':
+          groupedByDate[date].ca2 = true;
+          break;
+        case 'ca3':
+          groupedByDate[date].ca3 = true;
+          break;
+        case 'ca4':
+          groupedByDate[date].ca4 = true;
+          break;
+      }
       
-      // Đánh dấu ca
-      groupedByDate[date][ca] = true;
+      const hours = parseFloat(record.thoi_gian_lam) || 0;
       groupedByDate[date].tong_gio += hours;
+      
       groupedByDate[date].employeeHours[employee.id] = 
         (groupedByDate[date].employeeHours[employee.id] || 0) + hours;
       
-      // Xử lý thông tin trực thay
-      let isTrucThay = false;
-      let tooltip = employeeAbbr;
-      
-      if (record.loai_lich === 'virtual') {
-        // Người này đang trực thay cho người khác
-        isTrucThay = true;
-        tooltip = `${employeeAbbr} (trực thay cho ${record.ten_nguoi_duoc_truc_thay || 'N/A'})`;
-      } else if (record.loai_lich === 'original') {
-        // Người này được trực thay bởi người khác
-        isTrucThay = false;
-        tooltip = `${employeeAbbr} (được ${record.ten_nguoi_truc_thay || 'N/A'} trực thay)`;
-      }
-      
-      // Lưu chi tiết ca
-      groupedByDate[date][`${ca}_details`].push({
-        name: employeeAbbr,
-        hours,
-        isTrucThay,
-        tooltip
-      });
-      
-      // Ghi chú tổng hợp (giữ nguyên)
       if (hours > 0) {
-        let note = `${employeeAbbr}: ${hours.toFixed(2)}h`;
-        if (record.loai_lich === 'virtual') {
-          note += ` (trực thay ${record.ten_nguoi_duoc_truc_thay || 'N/A'})`;
-        } else if (record.loai_lich === 'original') {
-          note += ` (được ${record.ten_nguoi_truc_thay || 'N/A'} trực thay)`;
-        }
         if (groupedByDate[date].ghi_chu) {
-          groupedByDate[date].ghi_chu += `; ${note}`;
+          groupedByDate[date].ghi_chu += `; ${employeeAbbr}: ${hours.toFixed(2)}h`;
         } else {
-          groupedByDate[date].ghi_chu = note;
+          groupedByDate[date].ghi_chu = `${employeeAbbr}: ${hours.toFixed(2)}h`;
         }
       }
     });
@@ -2229,10 +1647,6 @@ const AdminHistory = () => {
         ca2: [],
         ca3: [],
         ca4: [],
-        ca1_details: [],
-        ca2_details: [],
-        ca3_details: [],
-        ca4_details: [],
         ghi_chu: notes[date] || '',
         tong_gio: 0,
         total_hours: 0
@@ -2243,14 +1657,8 @@ const AdminHistory = () => {
       employeeData.forEach(item => {
         if (!combinedMap[item.date]) return;
 
-        // Gộp thông tin từ các employee vào combinedMap
-        combinedMap[item.date].ca1_details = [...combinedMap[item.date].ca1_details, ...(item.ca1_details || [])];
-        combinedMap[item.date].ca2_details = [...combinedMap[item.date].ca2_details, ...(item.ca2_details || [])];
-        combinedMap[item.date].ca3_details = [...combinedMap[item.date].ca3_details, ...(item.ca3_details || [])];
-        combinedMap[item.date].ca4_details = [...combinedMap[item.date].ca4_details, ...(item.ca4_details || [])];
-        
-        // Vẫn giữ ca1, ca2,... dạng mảng các tên để tương thích ngược
         const empAbbr = getEmployeeAbbr(employees.find(e => e.id === item.employeeId));
+        
         if (item.ca1) combinedMap[item.date].ca1.push(empAbbr);
         if (item.ca2) combinedMap[item.date].ca2.push(empAbbr);
         if (item.ca3) combinedMap[item.date].ca3.push(empAbbr);
@@ -2450,8 +1858,7 @@ const AdminHistory = () => {
     if (tabValue === 0) {
       Promise.all([
         fetchAllAttendance(),
-        fetchTimeAdjustmentRequests(),
-        fetchTrucThayRequests()
+        fetchTimeAdjustmentRequests()
       ]);
     } else {
       fetchRegisteredUsers();
@@ -2553,7 +1960,15 @@ const AdminHistory = () => {
           }}
         >
           <Tab 
-            icon={<Badge badgeContent={(timeAdjustmentRequests || []).filter(r => r?.trang_thai === 'pending').length} color="error" sx={{ '& .MuiBadge-badge': { right: -5, top: 5 } }}><WorkIcon /></Badge>}
+            icon={
+              <Badge 
+                badgeContent={(timeAdjustmentRequests || []).filter(r => r?.trang_thai === 'pending').length} 
+                color="error" 
+                sx={{ '& .MuiBadge-badge': { right: -5, top: 5 } }}
+              >
+                <WorkIcon />
+              </Badge>
+            }
             iconPosition="start"
             label="Bảng chấm công tổng hợp" 
           />
@@ -2563,25 +1978,17 @@ const AdminHistory = () => {
 
       {/* ================= TAB 1 ================= */}
       <TabPanel value={tabValue} index={0}>
-        {/* Statistics với 5 thẻ cùng hàng */}
+        {/* Statistics với 4 thẻ cùng hàng */}
         <StatisticsCards 
           totals={calculateTotals()} 
           stats={stats} 
           pendingRequests={(timeAdjustmentRequests || []).filter(r => r?.trang_thai === 'pending').length}
-          requests={timeAdjustmentRequests}
+          requests={timeAdjustmentRequests} // Đã đảm bảo là array
           onProcessRequest={handleProcessTimeAdjustment}
           loadingRequests={loadingRequests}
-          pendingTrucThay={(trucThayRequests || []).filter(r => r?.trang_thai === 'pending').length}
-          trucThayRequests={trucThayRequests}
-          onProcessTrucThay={handleProcessTrucThay}
-          loadingTrucThay={loadingTrucThay}
-          month={month}                      
-          year={year}                        
-          fetchAllTrucThay={fetchAllTrucThay}
-          fetchAllTimeAdjustments={fetchAllTimeAdjustments}
         />
 
-        {/* Layout 2 CỘT (đã bỏ cột giữa) */}
+        {/* Layout 2 CỘT */}
         <Grid container spacing={2} alignItems="stretch">
           
           {/* CỘT TRÁI - DANH SÁCH NHÂN VIÊN */}
