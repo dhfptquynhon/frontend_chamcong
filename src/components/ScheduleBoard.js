@@ -52,7 +52,8 @@ import {
   Timer as TimerIcon,
   Download as DownloadIcon,
   History as HistoryIcon,
-  Message as MessageIcon
+  Message as MessageIcon,
+  Warning as WarningIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import AuthContext from '../context/AuthContext';
@@ -356,6 +357,28 @@ const canCheckOut = (cell) => {
     reason: `Ca này đã qua ${diffDays} ngày`,
     message: `Bạn có thể gửi yêu cầu điều chỉnh giờ check-out cho ca đã qua ${diffDays} ngày`
   };
+};
+
+// ====================== HÀM TÍNH SỐ PHÚT TỪ LÚC CHECK-IN ======================
+const getMinutesSinceCheckin = (cell) => {
+  if (!cell || !cell.gio_vao) return Infinity;
+  
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const cellDate = new Date(cell.ngay).toISOString().split('T')[0];
+  
+  // Nếu check-in vào ngày khác với ngày hiện tại
+  if (cellDate !== todayStr) {
+    // Tính từ thời điểm check-in đến thời điểm hiện tại (cross-day)
+    const checkinDateTime = new Date(`${cellDate}T${cell.gio_vao}`);
+    const diffMs = now - checkinDateTime;
+    return diffMs / (1000 * 60);
+  }
+  
+  // Cùng ngày
+  const checkinDateTime = new Date(`${todayStr}T${cell.gio_vao}`);
+  const diffMs = now - checkinDateTime;
+  return diffMs / (1000 * 60);
 };
 
 const getTimeStatus = (cell) => {
@@ -777,6 +800,13 @@ const ScheduleBoard = ({ refreshToken }) => {
     thoiGianDeXuat: '',
     lyDo: '',
     shiftEnd: ''
+  });
+
+  // State cho dialog cảnh báo checkout sớm (MỚI)
+  const [earlyCheckoutDialog, setEarlyCheckoutDialog] = useState({
+    open: false,
+    cell: null,
+    minutes: 0
   });
 
   const [myTimeAdjustmentsDialog, setMyTimeAdjustmentsDialog] = useState({
@@ -1440,27 +1470,8 @@ const ScheduleBoard = ({ refreshToken }) => {
     }
   };
 
-  const handleCheckout = async (cell) => {
-    if (!cell) return;
-
-    console.log('=== HANDLE CHECKOUT ===');
-    console.log('Cell:', cell);
-
-    const checkResult = canCheckOut(cell);
-    console.log('Kết quả kiểm tra:', checkResult);
-
-    if (checkResult.canRequestAdjustment) {
-      console.log('✅ MỞ DIALOG YÊU CẦU');
-      handleOpenTimeAdjustmentDialog(cell, 'checkout');
-      closeDetailDialog();
-      return;
-    }
-
-    if (!checkResult.canCheckOut) {
-      showSnackbar(checkResult.reason, 'warning');
-      return;
-    }
-
+  // ====================== TÁCH LOGIC GỌI API CHECKOUT THÀNH HÀM RIÊNG ======================
+  const doCheckout = async (cell) => {
     try {
       setLoading(true);
       const res = await axios.post(
@@ -1468,7 +1479,6 @@ const ScheduleBoard = ({ refreshToken }) => {
         {},
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
-
       showSnackbar(res.data?.message || 'Check-out thành công', 'success');
 
       setRows(prev => prev.map(row => {
@@ -1501,7 +1511,6 @@ const ScheduleBoard = ({ refreshToken }) => {
           'info'
         );
       }
-
     } catch (err) {
       console.log('LỖI CHECK-OUT:', err.response?.status, err.response?.data);
 
@@ -1517,8 +1526,53 @@ const ScheduleBoard = ({ refreshToken }) => {
       }
     } finally {
       setLoading(false);
-      closeDetailDialog();
     }
+  };
+
+  // ====================== HANDLE CHECKOUT - ĐÃ SỬA ĐỂ XỬ LÝ CHECKOUT SỚM ======================
+  const handleCheckout = async (cell) => {
+    if (!cell) return;
+
+    console.log('=== HANDLE CHECKOUT ===');
+    console.log('Cell:', cell);
+
+    const checkResult = canCheckOut(cell);
+    console.log('Kết quả kiểm tra:', checkResult);
+
+    if (checkResult.canRequestAdjustment) {
+      console.log('✅ MỞ DIALOG YÊU CẦU');
+      handleOpenTimeAdjustmentDialog(cell, 'checkout');
+      closeDetailDialog();
+      return;
+    }
+
+    if (!checkResult.canCheckOut) {
+      showSnackbar(checkResult.reason, 'warning');
+      return;
+    }
+
+    // Kiểm tra thời gian từ lúc check‑in (CHỈ KHI CÙNG NGÀY)
+    const cellDate = new Date(cell.ngay).toISOString().split('T')[0];
+    const currentDate = new Date().toISOString().split('T')[0];
+    
+    if (cellDate === currentDate && cell.trang_thai === 'checked_in') {
+      const minutesSinceCheckin = getMinutesSinceCheckin(cell);
+      console.log(`Thời gian từ lúc check-in: ${minutesSinceCheckin} phút`);
+      
+      if (minutesSinceCheckin < 30) {
+        console.log('⚠️ CẢNH BÁO CHECKOUT SỚM');
+        setEarlyCheckoutDialog({
+          open: true,
+          cell,
+          minutes: Math.round(minutesSinceCheckin)
+        });
+        return;
+      }
+    }
+
+    // Thực hiện checkout bình thường
+    await doCheckout(cell);
+    closeDetailDialog();
   };
 
   const handleCancelRegistration = async (cell) => {
@@ -2239,6 +2293,7 @@ const ScheduleBoard = ({ refreshToken }) => {
           • Nhấn nút <strong style={{ color: '#ff9800' }}>TRỰC THAY</strong> để trực thay ca của người khác
           • <strong style={{ color: '#ff9800' }}>Quá giờ</strong> sẽ chuyển sang gửi yêu cầu điều chỉnh giờ
           • <strong style={{ color: '#4caf50' }}>Xanh lá</strong>: Người được trực thay • <strong style={{ color: '#ff9800' }}>Cam</strong>: Bạn đang trực thay
+          • <strong style={{ color: '#f44336' }}>Cảnh báo đỏ</strong>: Checkout sớm nếu mới check-in dưới 30 phút
         </Typography>
 
         {error && (
@@ -3167,6 +3222,63 @@ const ScheduleBoard = ({ refreshToken }) => {
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setMyTimeAdjustmentsDialog(prev => ({ ...prev, open: false }))} color="inherit">
             Đóng
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog cảnh báo checkout sớm (MỚI) */}
+      <Dialog
+        open={earlyCheckoutDialog.open}
+        onClose={() => setEarlyCheckoutDialog({ open: false, cell: null, minutes: 0 })}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: '#ffebee' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <WarningIcon color="warning" />
+            <Typography variant="h6" color="warning.dark">
+              ⚠️ Cảnh báo checkout sớm
+            </Typography>
+          </Box>
+        </DialogTitle>
+        
+        <DialogContent sx={{ pt: 3 }}>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Bạn vừa check‑in được <strong>{earlyCheckoutDialog.minutes} phút</strong>.
+          </Alert>
+          
+          <Typography variant="body1" gutterBottom>
+            Bạn có chắc chắn muốn checkout sớm không?
+          </Typography>
+          
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            • Checkout sớm sẽ chỉ ghi nhận thời gian làm việc thực tế.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            • Nếu bạn vô tình bấm nhầm, hãy chọn "Hủy" để tiếp tục làm việc.
+          </Typography>
+        </DialogContent>
+        
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button 
+            onClick={() => setEarlyCheckoutDialog({ open: false, cell: null, minutes: 0 })}
+            variant="outlined"
+            color="inherit"
+          >
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            color="warning"
+            onClick={async () => {
+              const cell = earlyCheckoutDialog.cell;
+              setEarlyCheckoutDialog({ open: false, cell: null, minutes: 0 });
+              await doCheckout(cell);
+              closeDetailDialog();
+            }}
+            startIcon={<LogoutIcon />}
+          >
+            Vẫn checkout
           </Button>
         </DialogActions>
       </Dialog>

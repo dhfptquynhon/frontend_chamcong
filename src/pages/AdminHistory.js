@@ -75,7 +75,8 @@ import {
   Delete as DeleteIcon,
   VpnKey as VpnKeyIcon,
   AdminPanelSettings as AdminPanelSettingsIcon,
-  SwapHoriz as SwapHorizIcon
+  SwapHoriz as SwapHorizIcon,
+  Undo as UndoIcon
 } from '@mui/icons-material';
 import AuthContext from '../context/AuthContext';
 import axios from 'axios';
@@ -1759,6 +1760,50 @@ const EmployeeList = ({
 };
 
 // =======================
+// Revert Checkout Dialog Component (MỚI)
+// =======================
+const RevertCheckoutDialog = ({ open, onClose, onConfirm, loading }) => {
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ bgcolor: '#ff9800', color: 'white' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <UndoIcon />
+          <Typography variant="h6">Xác nhận hoàn tác checkout</Typography>
+        </Box>
+      </DialogTitle>
+      <DialogContent sx={{ pt: 3 }}>
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          <strong>Cảnh báo:</strong> Hành động này sẽ trả ca làm về trạng thái "Đang làm" (checked_in) và xóa thời gian check-out hiện tại.
+        </Alert>
+        <Typography variant="body1" gutterBottom>
+          Bạn có chắc chắn muốn hoàn tác checkout cho ca làm này không?
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+          • Người dùng sẽ có thể check-out lại bình thường.
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          • Thời gian làm việc sẽ được tính lại từ lúc check-in.
+        </Typography>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button onClick={onClose} color="inherit" disabled={loading}>
+          Hủy
+        </Button>
+        <Button 
+          variant="contained" 
+          color="warning"
+          onClick={onConfirm}
+          disabled={loading}
+          startIcon={<UndoIcon />}
+        >
+          {loading ? 'Đang xử lý...' : 'Xác nhận hoàn tác'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// =======================
 // Main Component
 // =======================
 const AdminHistory = () => {
@@ -1797,6 +1842,13 @@ const AdminHistory = () => {
   // State cho yêu cầu trực thay
   const [trucThayRequests, setTrucThayRequests] = useState([]);
   const [loadingTrucThay, setLoadingTrucThay] = useState(false);
+
+  // State cho revert checkout (MỚI)
+  const [revertDialog, setRevertDialog] = useState({
+    open: false,
+    recordId: null,
+    loading: false
+  });
 
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
@@ -1842,6 +1894,43 @@ const AdminHistory = () => {
     } catch (e) {
       return dateString;
     }
+  };
+
+  // Hàm xử lý revert checkout (MỚI)
+  const handleRevertCheckout = async () => {
+    if (!revertDialog.recordId) return;
+
+    setRevertDialog(prev => ({ ...prev, loading: true }));
+    try {
+      const response = await axios.post(
+        `https://backendchamcong-production.up.railway.app/api/attendance/admin/schedule/${revertDialog.recordId}/revert-checkout`,
+        {},
+        { headers: { Authorization: `Bearer ${auth.token}` } }
+      );
+
+      showSnackbar(response.data.message, 'success');
+      
+      // Refresh lại chi tiết user nếu dialog đang mở
+      if (userDetailDialog.open && userDetailDialog.user) {
+        await fetchUserDetail(userDetailDialog.user.id);
+      }
+      
+      // Refresh lại bảng tổng hợp nếu đang ở tab 0
+      if (tabValue === 0) {
+        await fetchAllAttendance();
+      }
+
+      setRevertDialog({ open: false, recordId: null, loading: false });
+
+    } catch (err) {
+      console.error('Lỗi revert checkout:', err);
+      showSnackbar(err.response?.data?.message || 'Hoàn tác checkout thất bại', 'error');
+      setRevertDialog(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const openRevertDialog = (recordId) => {
+    setRevertDialog({ open: true, recordId, loading: false });
   };
 
   // Hàm lấy tất cả lịch sử trực thay
@@ -3009,7 +3098,7 @@ const AdminHistory = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Dialog xem chi tiết user */}
+      {/* Dialog xem chi tiết user (ĐÃ CẬP NHẬT với nút revert) */}
       <Dialog
         open={userDetailDialog.open}
         onClose={() => setUserDetailDialog({ open: false, user: null, schedule: [] })}
@@ -3042,7 +3131,7 @@ const AdminHistory = () => {
             </Alert>
           ) : (
             <TableContainer>
-              <Table size="small">
+              <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Ngày</TableCell>
@@ -3051,6 +3140,7 @@ const AdminHistory = () => {
                     <TableCell sx={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Giờ ra</TableCell>
                     <TableCell sx={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Thời gian</TableCell>
                     <TableCell sx={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Trạng thái</TableCell>
+                    <TableCell sx={{ fontSize: '0.8rem', fontWeight: 'bold' }} align="center">Hành động</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -3083,6 +3173,20 @@ const AdminHistory = () => {
                           sx={{ height: 20, fontSize: '0.7rem' }}
                         />
                       </TableCell>
+                      <TableCell align="center" sx={{ fontSize: '0.8rem' }}>
+                        {item.trang_thai === 'checked_out' && (
+                          <Tooltip title="Hoàn tác checkout (trả lại trạng thái đang làm)">
+                            <IconButton
+                              size="small"
+                              color="warning"
+                              onClick={() => openRevertDialog(item.id)}
+                              disabled={revertDialog.loading}
+                            >
+                              <UndoIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -3096,6 +3200,14 @@ const AdminHistory = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Dialog revert checkout (MỚI) */}
+      <RevertCheckoutDialog
+        open={revertDialog.open}
+        onClose={() => setRevertDialog({ open: false, recordId: null, loading: false })}
+        onConfirm={handleRevertCheckout}
+        loading={revertDialog.loading}
+      />
 
       {/* Snackbar thông báo */}
       {snackbar.open && (
