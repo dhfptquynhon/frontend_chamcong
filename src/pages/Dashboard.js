@@ -4,6 +4,7 @@ import AdminHistory from './AdminHistory';
 import { Box, Typography, Paper, Grid, Tabs, Tab } from '@mui/material';
 import ScheduleBoard from '../components/ScheduleBoard';
 import Attendance from './Attendance';
+import AnalogClock from './AnalogClock';
 
 const Dashboard = () => {
   const { auth } = useContext(AuthContext);
@@ -124,6 +125,7 @@ const Dashboard = () => {
           </Grid>
         </Grid>
       )}
+      <AnalogClock />
     </Box>
   );
 };
